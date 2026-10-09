@@ -1,0 +1,78 @@
+/* ================= 查看對方的紀錄（唯讀） =================
+   每人的紀錄仍存在自己的 Drive；把自己的「樂器維護紀錄」資料夾以「檢視者」分享給對方，
+   對方的 App 就能讀取（不能修改）。 */
+const SHARED={};          // owner e-mail → {name, folder, records}
+let sharedAt=0;
+async function readJsonFile(id){
+ const r=await gfetch(`${DRIVE}/${id}?alt=media`);
+ if(!r.ok)throw await driveErr(r,'讀取紀錄');
+ try{const j=await r.json();return Array.isArray(j.records)?j.records:[]}catch(e){return []}
+}
+async function loadShared(){
+ const q=`name='${qs(APP_FOLDER)}' and mimeType='application/vnd.google-apps.folder' and sharedWithMe=true and trashed=false`;
+ const r=await gfetch(`${DRIVE}?q=${encodeURIComponent(q)}&fields=files(id,owners(displayName,emailAddress))&pageSize=20`);
+ if(!r.ok)return;
+ for(const f of (await r.json()).files||[]){
+  const o=(f.owners||[])[0];if(!o||!o.emailAddress||o.emailAddress.toLowerCase()===state.user)continue;
+  const email=o.emailAddress.toLowerCase();
+  if(!(await isAllowed(email)))continue;
+  const db=await findOne(`name='${DB_FILE}' and '${f.id}' in parents and trashed=false`);
+  if(!db)continue;
+  const name=o.displayName||email.split('@')[0];
+  try{SHARED[email]={name,folder:f.id,records:(await readJsonFile(db.id)).map(x=>({...x,_owner:name,_ro:true}))}}catch(e){}
+ }
+ sharedAt=Date.now();renderSrc();
+}
+function refreshShared(force){
+ if(!state.user||(!force&&Date.now()-sharedAt<60000))return;
+ loadShared().then(()=>{if(!$('#view-list').hidden)renderRecords()}).catch(()=>{});
+}
+function renderSrc(){
+ const sel=$('#statSrc'),keys=Object.keys(SHARED),cur=sel.value||'me';
+ sel.hidden=!keys.length;
+ sel.innerHTML=`<option value="me">我的紀錄</option>${keys.map(k=>`<option value="${esc(k)}">${esc(SHARED[k].name)} 的紀錄</option>`).join('')}<option value="all">全部（合併）</option>`;
+ sel.value=[...sel.options].some(o=>o.value===cur)?cur:'me';
+}
+function sourceRecords(){
+ const v=$('#statSrc').value||'me';
+ if(v==='me')return DB.records;
+ if(v==='all')return [...DB.records.map(x=>({...x,_owner:state.name})),...Object.values(SHARED).flatMap(x=>x.records)];
+ return SHARED[v]?SHARED[v].records:[];
+}
+$('#statSrc').addEventListener('change',()=>{stat.month=null;stat.inst=null;renderRecords()});
+
+/* 分享設定 */
+async function listPerms(){
+ const r=await gfetch(`${DRIVE}/${DB.folder}/permissions?fields=permissions(id,emailAddress,displayName,role)`);
+ if(!r.ok)throw await driveErr(r,'讀取分享設定');
+ return ((await r.json()).permissions||[]).filter(p=>p.role!=='owner'&&p.emailAddress);
+}
+async function renderPerms(){
+ const ul=$('#shareList');ul.innerHTML='<li class="hint">讀取中…</li>';
+ try{
+  const ps=await listPerms();
+  ul.innerHTML=ps.length?ps.map(p=>`<li><span><b>${esc(p.displayName||p.emailAddress)}</b><small>${esc(p.emailAddress)} · 可查看</small></span><button type="button" class="btn-ghost warn sm2" data-perm="${esc(p.id)}">停止分享</button></li>`).join(''):'<li class="hint">目前沒有分享給任何人。</li>';
+ }catch(e){ul.innerHTML=`<li class="err">${esc(e.message)}</li>`}
+}
+$('#shareOpen').addEventListener('click',()=>{$('#menu').hidden=true;$('#shareMsg').textContent='';$('#shareModal').hidden=false;$('#backdrop').hidden=false;renderPerms();$('#shareEmail').focus()});
+$('#shareX').addEventListener('click',closeOverlays);
+$('#shareForm').addEventListener('submit',async e=>{
+ e.preventDefault();
+ const email=$('#shareEmail').value.trim().toLowerCase(),msg=$('#shareMsg'),btn=$('#shareForm button');
+ if(!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)){msg.textContent='請輸入完整的 Google 帳號，例如 name@gmail.com。';return}
+ if(email===state.user){msg.textContent='這是你自己的帳號，不需要分享。';return}
+ if(!(await isAllowed(email))){msg.textContent='只能分享給授權名單上的帳號。';return}
+ btn.disabled=true;msg.textContent='分享中…';
+ try{
+  const r=await gfetch(`${DRIVE}/${DB.folder}/permissions?sendNotificationEmail=false&fields=id`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({type:'user',role:'reader',emailAddress:email})});
+  if(!r.ok)throw await driveErr(r,'分享');
+  msg.textContent=`已分享。對方下次開啟 App，就能在「歷史紀錄」切換查看你的紀錄。`;$('#shareEmail').value='';renderPerms();
+ }catch(err){msg.textContent=err.message}finally{btn.disabled=false}
+});
+$('#shareList').addEventListener('click',async e=>{
+ const b=e.target.closest('[data-perm]');if(!b)return;
+ b.disabled=true;
+ const r=await gfetch(`${DRIVE}/${DB.folder}/permissions/${b.dataset.perm}`,{method:'DELETE'});
+ $('#shareMsg').textContent=r.ok?'已停止分享。':'停止分享失敗，請再試一次。';renderPerms();
+});
+

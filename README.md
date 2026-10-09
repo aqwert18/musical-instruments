@@ -5,6 +5,7 @@
 - 網址：https://aqwert18.github.io/musical-instruments/
 - 登入：Google 帳號（只有授權名單上的帳號能使用）
 - 資料：存在登入者自己的 Google Drive「樂器維護紀錄」資料夾（`records.json` 與 `photos/`）
+- 共用：帳號選單「分享我的紀錄給對方」，把資料夾以檢視者分享給另一個授權帳號；對方可在歷史紀錄切換查看（唯讀）
 
 ## 檔案
 

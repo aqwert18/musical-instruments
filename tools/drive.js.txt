@@ -2,7 +2,8 @@
    純前端：權杖只存在瀏覽器記憶體；資料存在登入者自己的 Google Drive。
    drive.file 範圍只能存取本 App 建立的檔案。 */
 const CLIENT_ID='475317204587-d101b197ptgvmtskmrahpolcv8nubkei.apps.googleusercontent.com';
-const SCOPE_DRIVE='https://www.googleapis.com/auth/drive.file';
+// 完整雲端硬碟範圍：用來讀取對方分享的資料夾。程式只會存取「樂器維護紀錄」資料夾。
+const SCOPE_DRIVE='https://www.googleapis.com/auth/drive';
 const SCOPES='openid email profile '+SCOPE_DRIVE;
 const APP_FOLDER='樂器維護紀錄',DB_FILE='records.json';
 const DRIVE='https://www.googleapis.com/drive/v3/files',UPLOAD='https://www.googleapis.com/upload/drive/v3/files';
@@ -23,7 +24,7 @@ function onToken(resp){
  if(resp.error){onTokenError({type:resp.error});return}
  if(!google.accounts.oauth2.hasGrantedAllScopes(resp,SCOPE_DRIVE)){
   auth.waiters.splice(0).forEach(w=>w.rej(new Error('scope')));
-  loginError('需要允許「查看、編輯及刪除這個應用程式建立的 Google 雲端硬碟檔案」，才能把紀錄存進你的 Google Drive。請再按一次登入，並勾選這項權限。');return}
+  loginError('需要允許存取 Google 雲端硬碟，才能儲存紀錄、查看對方分享的紀錄（App 只會使用「樂器維護紀錄」資料夾）。請再按一次登入，並勾選這項權限。');return}
  auth.token=resp.access_token;auth.exp=Date.now()+(Number(resp.expires_in||3600)-120)*1000;
  $('#reauth').hidden=true;
  auth.waiters.splice(0).forEach(w=>w.res(auth.token));
@@ -80,7 +81,7 @@ async function readDB(){
 }
 async function loadDB(){
  const folderQ=(n,p)=>`name='${qs(n)}' and mimeType='application/vnd.google-apps.folder' and trashed=false${p?` and '${p}' in parents`:''}`;
- DB.folder=(await findOne(folderQ(APP_FOLDER)))?.id||await createFolder(APP_FOLDER);
+ DB.folder=(await findOne(folderQ(APP_FOLDER)+" and 'me' in owners"))?.id||await createFolder(APP_FOLDER);
  DB.photos=(await findOne(folderQ('photos',DB.folder)))?.id||await createFolder('photos',DB.folder);
  const f=await findOne(`name='${DB_FILE}' and '${DB.folder}' in parents and trashed=false`);
  if(f){DB.file=f.id;DB.records=await readDB()}
@@ -123,6 +124,7 @@ async function afterLogin(){
   store.set('mi-last',email);
   setBusy(true,'讀取 Google Drive…');
   await loadDB();
+  loadShared().catch(()=>{});
   enterApp();
  }catch(e){
   state.user=null;
@@ -140,7 +142,7 @@ $('#acctBtn').addEventListener('click',()=>{$('#menu').hidden=!$('#menu').hidden
 document.addEventListener('click',e=>{if(!e.target.closest('.acct'))$('#menu').hidden=true});
 $('#logoutBtn').addEventListener('click',()=>{
  try{if(auth.token)google.accounts.oauth2.revoke(auth.token,()=>{})}catch(e){}
- auth.token=null;auth.exp=0;state.user=null;DB.records=[];
+ auth.token=null;auth.exp=0;state.user=null;DB.records=[];for(const k of Object.keys(SHARED))delete SHARED[k];renderSrc();
  for(const k of Object.keys(photoCache))delete photoCache[k];
  $('#menu').hidden=true;$('#app').hidden=true;$('#login').hidden=false;setBusy(false);
 });

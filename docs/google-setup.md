@@ -43,9 +43,9 @@
    - `openid`
    - `.../auth/userinfo.email`
    - `.../auth/userinfo.profile`
-   - `.../auth/drive.file`
+   - `.../auth/drive`（在清單中找「Google Drive API」的 `https://www.googleapis.com/auth/drive`；找不到時用「手動新增範圍」貼上）
 
-   > `drive.file`：App 只能看到**它自己建立**的檔案，看不到使用者 Drive 裡的其他東西。這是權限最小的範圍，屬於非敏感範圍，不需要送 Google 審核。
+   > `drive`：讓兩個帳號能互相查看分享的紀錄。這是「受限範圍」，但 App 維持在「測試中」狀態時，測試使用者可以直接使用，不需要送 Google 審核（登入時會看到「Google 尚未驗證這個應用程式」，按繼續即可）。程式只會存取雲端硬碟裡的「樂器維護紀錄」資料夾。
 
 ## 步驟 4：建立 OAuth 用戶端 ID
 

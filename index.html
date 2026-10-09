@@ -426,6 +426,14 @@ a.mode:hover{color:var(--accent);border-color:var(--accent)}
 .reauth p{margin:0;flex:1;font-size:14px}
 .ph-err{color:var(--paper-muted)}
 .btn-primary:disabled{opacity:.7;cursor:progress}
+.share-list{list-style:none;margin:0;padding:0;display:grid;gap:8px}
+.share-list li{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:10px 12px;border:1px solid var(--line);border-radius:10px}
+.share-list li span{display:grid;min-width:0;word-break:break-all}
+.share-list small{color:var(--muted);font-size:12px}
+.share-list li.hint,.share-list li.err{border:0;padding:4px 0}
+.btn-ghost.sm2{padding:6px 12px;font-size:13px;white-space:nowrap}
+#statSrc{font-family:var(--f-body)}
+.badge.owner{background:var(--sunk);color:var(--fg)}
 </style>
 
 </head>
@@ -443,7 +451,7 @@ a.mode:hover{color:var(--accent);border-color:var(--accent)}
     </button>
     <button id="otherAcct" class="link-btn" type="button">使用其他 Google 帳號</button>
     <p id="loginErr" class="err" role="alert" hidden></p>
-    <p class="proto-note">只有授權的帳號能使用。第一次登入時，Google 會詢問是否允許本 App 存取「它自己建立的雲端硬碟檔案」，請按「允許」。</p>
+    <p class="proto-note">只有授權的帳號能使用。第一次登入時，Google 會詢問是否允許存取雲端硬碟，請勾選並按「繼續」。App 只會使用你雲端硬碟裡的「樂器維護紀錄」資料夾。</p>
   </div>
 </section>
 
@@ -464,6 +472,7 @@ a.mode:hover{color:var(--accent);border-color:var(--accent)}
       <div id="menu" class="menu" hidden>
         <p>已登入</p><strong id="menuEmail" style="word-break:break-all"></strong>
         <p>紀錄與照片存在此帳號 Google Drive 的「樂器維護紀錄」資料夾。</p>
+        <button id="shareOpen" class="btn-ghost" type="button">分享我的紀錄給對方…</button>
         <button id="logoutBtn" class="btn-ghost warn" type="button">登出</button>
       </div>
     </div>
@@ -547,6 +556,7 @@ a.mode:hover{color:var(--accent);border-color:var(--accent)}
       <div class="stats-head">
         <div><p class="eyebrow">統計與紀錄</p><h2 id="statTitle">2026 年維修統計</h2></div>
         <div class="stats-ctrl">
+          <label class="sr" for="statSrc">資料來源</label><select id="statSrc" hidden><option value="me">我的紀錄</option></select>
           <label class="sr" for="statYear">年份</label><select id="statYear"></select>
           <label class="chk"><input type="checkbox" id="showSample"> 顯示示範資料</label>
           <button type="button" class="btn-primary sm" id="openReport">產出月報</button>
@@ -618,6 +628,13 @@ a.mode:hover{color:var(--accent);border-color:var(--accent)}
   </div>
   <div id="tip" class="tip" role="tooltip" hidden></div>
   <div id="reauth" class="reauth" role="alertdialog" aria-labelledby="reauthT" hidden><p id="reauthT">Google 連線已逾時，請點一下繼續（資料不會遺失）。</p><button type="button" class="btn-primary sm" id="reauthBtn">重新連線</button></div>
+  <section id="shareModal" class="modal" role="dialog" aria-modal="true" aria-labelledby="shareT" hidden>
+    <div class="sec-head"><h2 id="shareT" style="font-family:var(--f-display);font-size:20px">分享我的紀錄</h2><button class="x" id="shareX" type="button" aria-label="關閉">×</button></div>
+    <p class="hint">對方只能查看，不能修改或刪除。只能分享給授權名單上的帳號。</p>
+    <form id="shareForm" class="other"><input id="shareEmail" type="email" placeholder="對方的 Google 帳號" autocomplete="off" aria-label="對方的 Google 帳號"><button class="btn-primary sm" type="submit">分享</button></form>
+    <p id="shareMsg" class="hint" role="status"></p>
+    <p class="eyebrow">目前分享給</p><ul id="shareList" class="share-list"></ul>
+  </section>
 
 
   <!-- Repair sheet -->
@@ -652,6 +669,11 @@ async function isAllowed(email){
   return ALLOWED_SHA256.includes([...new Uint8Array(d)].map(b=>b.toString(16).padStart(2,'0')).join(''))}catch(e){return false}
 }
 const VERSIONS = [
+  {v:'V8', date:'2026-10-10', items:[
+    '可查看對方的維修紀錄：帳號選單「分享我的紀錄給對方」，對方即可在歷史紀錄切換查看（唯讀）',
+    '歷史紀錄可切換資料來源：我的紀錄、對方的紀錄、全部（合併）；統計與月報跟著切換',
+    'Google 權限改為完整雲端硬碟範圍（App 只使用「樂器維護紀錄」資料夾）'
+  ]},
   {v:'V7', date:'2026-10-09', items:[
     '正式版上線：Google 帳號登入，只有授權帳號能使用',
     '紀錄與照片存到登入者自己的 Google Drive「樂器維護紀錄」資料夾',
@@ -1349,7 +1371,8 @@ function toast(t){const el=$('#toast');el.textContent=t;el.hidden=false;clearTim
    純前端：權杖只存在瀏覽器記憶體；資料存在登入者自己的 Google Drive。
    drive.file 範圍只能存取本 App 建立的檔案。 */
 const CLIENT_ID='475317204587-d101b197ptgvmtskmrahpolcv8nubkei.apps.googleusercontent.com';
-const SCOPE_DRIVE='https://www.googleapis.com/auth/drive.file';
+// 完整雲端硬碟範圍：用來讀取對方分享的資料夾。程式只會存取「樂器維護紀錄」資料夾。
+const SCOPE_DRIVE='https://www.googleapis.com/auth/drive';
 const SCOPES='openid email profile '+SCOPE_DRIVE;
 const APP_FOLDER='樂器維護紀錄',DB_FILE='records.json';
 const DRIVE='https://www.googleapis.com/drive/v3/files',UPLOAD='https://www.googleapis.com/upload/drive/v3/files';
@@ -1370,7 +1393,7 @@ function onToken(resp){
  if(resp.error){onTokenError({type:resp.error});return}
  if(!google.accounts.oauth2.hasGrantedAllScopes(resp,SCOPE_DRIVE)){
   auth.waiters.splice(0).forEach(w=>w.rej(new Error('scope')));
-  loginError('需要允許「查看、編輯及刪除這個應用程式建立的 Google 雲端硬碟檔案」，才能把紀錄存進你的 Google Drive。請再按一次登入，並勾選這項權限。');return}
+  loginError('需要允許存取 Google 雲端硬碟，才能儲存紀錄、查看對方分享的紀錄（App 只會使用「樂器維護紀錄」資料夾）。請再按一次登入，並勾選這項權限。');return}
  auth.token=resp.access_token;auth.exp=Date.now()+(Number(resp.expires_in||3600)-120)*1000;
  $('#reauth').hidden=true;
  auth.waiters.splice(0).forEach(w=>w.res(auth.token));
@@ -1427,7 +1450,7 @@ async function readDB(){
 }
 async function loadDB(){
  const folderQ=(n,p)=>`name='${qs(n)}' and mimeType='application/vnd.google-apps.folder' and trashed=false${p?` and '${p}' in parents`:''}`;
- DB.folder=(await findOne(folderQ(APP_FOLDER)))?.id||await createFolder(APP_FOLDER);
+ DB.folder=(await findOne(folderQ(APP_FOLDER)+" and 'me' in owners"))?.id||await createFolder(APP_FOLDER);
  DB.photos=(await findOne(folderQ('photos',DB.folder)))?.id||await createFolder('photos',DB.folder);
  const f=await findOne(`name='${DB_FILE}' and '${DB.folder}' in parents and trashed=false`);
  if(f){DB.file=f.id;DB.records=await readDB()}
@@ -1470,6 +1493,7 @@ async function afterLogin(){
   store.set('mi-last',email);
   setBusy(true,'讀取 Google Drive…');
   await loadDB();
+  loadShared().catch(()=>{});
   enterApp();
  }catch(e){
   state.user=null;
@@ -1487,7 +1511,7 @@ $('#acctBtn').addEventListener('click',()=>{$('#menu').hidden=!$('#menu').hidden
 document.addEventListener('click',e=>{if(!e.target.closest('.acct'))$('#menu').hidden=true});
 $('#logoutBtn').addEventListener('click',()=>{
  try{if(auth.token)google.accounts.oauth2.revoke(auth.token,()=>{})}catch(e){}
- auth.token=null;auth.exp=0;state.user=null;DB.records=[];
+ auth.token=null;auth.exp=0;state.user=null;DB.records=[];for(const k of Object.keys(SHARED))delete SHARED[k];renderSrc();
  for(const k of Object.keys(photoCache))delete photoCache[k];
  $('#menu').hidden=true;$('#app').hidden=true;$('#login').hidden=false;setBusy(false);
 });
@@ -1499,7 +1523,7 @@ function showView(v){
  document.querySelectorAll('.tabs button').forEach(b=>b.toggleAttribute('aria-current',b.dataset.view===v));
  document.querySelectorAll('.tabs button[aria-current]').forEach(b=>b.setAttribute('aria-current','page'));
  $('#view-new').hidden=v!=='new';$('#view-list').hidden=v!=='list';
- if(v==='list')renderRecords();
+ if(v==='list'){renderRecords();refreshShared()}
  window.scrollTo(0,0);
 }
 $('#verBtn').textContent=VERSIONS[0].v;
@@ -1743,7 +1767,7 @@ $('#sheetClear').addEventListener('click',()=>{delete state.repairs[sheetPart.id
 $('#sheetX').addEventListener('click',closeOverlays);
 $('#backdrop').addEventListener('click',closeOverlays);
 document.addEventListener('keydown',e=>{if(e.key==='Escape')closeOverlays()});
-function closeOverlays(){$('#sheet').hidden=true;$('#verModal').hidden=true;$('#backdrop').hidden=true}
+function closeOverlays(){$('#sheet').hidden=true;$('#verModal').hidden=true;const sm=document.getElementById('shareModal');if(sm)sm.hidden=true;$('#backdrop').hidden=true}
 
 /* ================= Photos ================= */
 function renderPhotos(){
@@ -1840,12 +1864,91 @@ function sampleRecords(){
  return SAMPLES=out;
 }
 function allRecords(){
- const mine=DB.records;
+ const mine=sourceRecords();
  const s=$('#showSample').checked?sampleRecords().map(r=>({...r,staff:r.staff||state.name})):[];
  return [...mine,...s].sort((a,b)=>b.date.localeCompare(a.date));
 }
 
 /* ---------- Statistics view ---------- */
+/* ================= 查看對方的紀錄（唯讀） =================
+   每人的紀錄仍存在自己的 Drive；把自己的「樂器維護紀錄」資料夾以「檢視者」分享給對方，
+   對方的 App 就能讀取（不能修改）。 */
+const SHARED={};          // owner e-mail → {name, folder, records}
+let sharedAt=0;
+async function readJsonFile(id){
+ const r=await gfetch(`${DRIVE}/${id}?alt=media`);
+ if(!r.ok)throw await driveErr(r,'讀取紀錄');
+ try{const j=await r.json();return Array.isArray(j.records)?j.records:[]}catch(e){return []}
+}
+async function loadShared(){
+ const q=`name='${qs(APP_FOLDER)}' and mimeType='application/vnd.google-apps.folder' and sharedWithMe=true and trashed=false`;
+ const r=await gfetch(`${DRIVE}?q=${encodeURIComponent(q)}&fields=files(id,owners(displayName,emailAddress))&pageSize=20`);
+ if(!r.ok)return;
+ for(const f of (await r.json()).files||[]){
+  const o=(f.owners||[])[0];if(!o||!o.emailAddress||o.emailAddress.toLowerCase()===state.user)continue;
+  const email=o.emailAddress.toLowerCase();
+  if(!(await isAllowed(email)))continue;
+  const db=await findOne(`name='${DB_FILE}' and '${f.id}' in parents and trashed=false`);
+  if(!db)continue;
+  const name=o.displayName||email.split('@')[0];
+  try{SHARED[email]={name,folder:f.id,records:(await readJsonFile(db.id)).map(x=>({...x,_owner:name,_ro:true}))}}catch(e){}
+ }
+ sharedAt=Date.now();renderSrc();
+}
+function refreshShared(force){
+ if(!state.user||(!force&&Date.now()-sharedAt<60000))return;
+ loadShared().then(()=>{if(!$('#view-list').hidden)renderRecords()}).catch(()=>{});
+}
+function renderSrc(){
+ const sel=$('#statSrc'),keys=Object.keys(SHARED),cur=sel.value||'me';
+ sel.hidden=!keys.length;
+ sel.innerHTML=`<option value="me">我的紀錄</option>${keys.map(k=>`<option value="${esc(k)}">${esc(SHARED[k].name)} 的紀錄</option>`).join('')}<option value="all">全部（合併）</option>`;
+ sel.value=[...sel.options].some(o=>o.value===cur)?cur:'me';
+}
+function sourceRecords(){
+ const v=$('#statSrc').value||'me';
+ if(v==='me')return DB.records;
+ if(v==='all')return [...DB.records.map(x=>({...x,_owner:state.name})),...Object.values(SHARED).flatMap(x=>x.records)];
+ return SHARED[v]?SHARED[v].records:[];
+}
+$('#statSrc').addEventListener('change',()=>{stat.month=null;stat.inst=null;renderRecords()});
+
+/* 分享設定 */
+async function listPerms(){
+ const r=await gfetch(`${DRIVE}/${DB.folder}/permissions?fields=permissions(id,emailAddress,displayName,role)`);
+ if(!r.ok)throw await driveErr(r,'讀取分享設定');
+ return ((await r.json()).permissions||[]).filter(p=>p.role!=='owner'&&p.emailAddress);
+}
+async function renderPerms(){
+ const ul=$('#shareList');ul.innerHTML='<li class="hint">讀取中…</li>';
+ try{
+  const ps=await listPerms();
+  ul.innerHTML=ps.length?ps.map(p=>`<li><span><b>${esc(p.displayName||p.emailAddress)}</b><small>${esc(p.emailAddress)} · 可查看</small></span><button type="button" class="btn-ghost warn sm2" data-perm="${esc(p.id)}">停止分享</button></li>`).join(''):'<li class="hint">目前沒有分享給任何人。</li>';
+ }catch(e){ul.innerHTML=`<li class="err">${esc(e.message)}</li>`}
+}
+$('#shareOpen').addEventListener('click',()=>{$('#menu').hidden=true;$('#shareMsg').textContent='';$('#shareModal').hidden=false;$('#backdrop').hidden=false;renderPerms();$('#shareEmail').focus()});
+$('#shareX').addEventListener('click',closeOverlays);
+$('#shareForm').addEventListener('submit',async e=>{
+ e.preventDefault();
+ const email=$('#shareEmail').value.trim().toLowerCase(),msg=$('#shareMsg'),btn=$('#shareForm button');
+ if(!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)){msg.textContent='請輸入完整的 Google 帳號，例如 name@gmail.com。';return}
+ if(email===state.user){msg.textContent='這是你自己的帳號，不需要分享。';return}
+ if(!(await isAllowed(email))){msg.textContent='只能分享給授權名單上的帳號。';return}
+ btn.disabled=true;msg.textContent='分享中…';
+ try{
+  const r=await gfetch(`${DRIVE}/${DB.folder}/permissions?sendNotificationEmail=false&fields=id`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({type:'user',role:'reader',emailAddress:email})});
+  if(!r.ok)throw await driveErr(r,'分享');
+  msg.textContent=`已分享。對方下次開啟 App，就能在「歷史紀錄」切換查看你的紀錄。`;$('#shareEmail').value='';renderPerms();
+ }catch(err){msg.textContent=err.message}finally{btn.disabled=false}
+});
+$('#shareList').addEventListener('click',async e=>{
+ const b=e.target.closest('[data-perm]');if(!b)return;
+ b.disabled=true;
+ const r=await gfetch(`${DRIVE}/${DB.folder}/permissions/${b.dataset.perm}`,{method:'DELETE'});
+ $('#shareMsg').textContent=r.ok?'已停止分享。':'停止分享失敗，請再試一次。';renderPerms();
+});
+
+
 const FAMS=[['木管','ww'],['銅管','br'],['打擊','pc']];
 const famKey=f=>(FAMS.find(x=>x[0]===f)||[,'ww'])[1];
 const ORDER=Object.keys(ENTRY_BY_ID);
@@ -1967,7 +2070,7 @@ function renderList(yr){
   const title=stat.group==='inst'?first.inst:`${+k.slice(5)} 月`;
   const dot=stat.group==='inst'?`<i class="f-${famKey(first.family)}"></i>`:'';
   return `<details class="grp"${gi<2?' open':''}><summary>${dot}<b>${esc(title)}</b><span class="cnt">${list.length} 件</span></summary><div class="rows">${list.map(r=>`<div class="row" data-id="${esc(r.id)}" tabindex="0" role="button" aria-label="查看 ${esc(r.date)} ${esc(r.inst)} 維修紀錄"><span class="d">${esc(r.date.slice(5).replace('-','/'))}（${weekdayOf(r.date)}）</span>
-   <span class="t"><b>${esc(stat.group==='inst'?[r.model?.brand,r.model?.name].filter(Boolean).join(' ')||'未填型號':r.inst+' '+[r.model?.brand,r.model?.name].filter(Boolean).join(' '))}</b>${r.sample?'<span class="badge mini sample">範例</span>':''} · ${esc(r.customer?r.customer.name:'未填客戶')}${(r.services||[]).length?`<span class="svc-tags">${r.services.map(v=>`<span class="svc-tag">${esc(v)}</span>`).join('')}</span>`:''}</span>
+   <span class="t"><b>${esc(stat.group==='inst'?[r.model?.brand,r.model?.name].filter(Boolean).join(' ')||'未填型號':r.inst+' '+[r.model?.brand,r.model?.name].filter(Boolean).join(' '))}</b>${r.sample?'<span class="badge mini sample">範例</span>':''}${r._owner?`<span class="badge mini owner">${esc(r._owner)}</span>`:''} · ${esc(r.customer?r.customer.name:'未填客戶')}${(r.services||[]).length?`<span class="svc-tags">${r.services.map(v=>`<span class="svc-tag">${esc(v)}</span>`).join('')}</span>`:''}</span>
    <span class="s">${esc(r.repairs.map(x=>`${x.part}（${x.m.join('、')||x.item}）`).join('；')||'未標記部位')}${r.photos.length?` · 照片 ${r.photos.length} 張`:''}</span><span class="go">查看紀錄 →</span></div>`).join('')}</div></details>`;
  }).join(''):'<p class="empty">這段期間沒有紀錄。到「新增紀錄」建立第一筆吧。</p>';
 }
@@ -1988,7 +2091,7 @@ let rvRec=null;
 function openRecord(id){
  const r=allRecords().find(x=>x.id===id);if(!r)return;
  rvRec=r;
- $('#rvEyebrow').textContent=`${r.date}（${weekdayOf(r.date)}）${r.sample?' · 範例':''}`;
+ $('#rvEyebrow').textContent=`${r.date}（${weekdayOf(r.date)}）${r.sample?' · 範例':''}${r._owner?' · '+r._owner+' 的紀錄':''}`;
  $('#rvTitle').textContent=`${r.inst}${r.model&&r.model.name?' · '+r.model.name:''}`;
  $('#rvBody').innerHTML=recordPages(r,1,{cust:false,staff:false,asset:false},r.date.slice(0,7),1,2,'維修紀錄').replace('<h4>1. ','<h4>').replace('<h4>1. ','<h4>');
  $('#rvBody').querySelectorAll('.page').forEach((p,i)=>p.style.animationDelay=i*120+'ms');hydrate($('#rvBody'));
