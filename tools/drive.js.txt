@@ -1,0 +1,148 @@
+/* ================= Google 登入與 Google Drive =================
+   純前端：權杖只存在瀏覽器記憶體；資料存在登入者自己的 Google Drive。
+   drive.file 範圍只能存取本 App 建立的檔案。 */
+const CLIENT_ID='475317204587-d101b197ptgvmtskmrahpolcv8nubkei.apps.googleusercontent.com';
+const SCOPE_DRIVE='https://www.googleapis.com/auth/drive.file';
+const SCOPES='openid email profile '+SCOPE_DRIVE;
+const APP_FOLDER='樂器維護紀錄',DB_FILE='records.json';
+const DRIVE='https://www.googleapis.com/drive/v3/files',UPLOAD='https://www.googleapis.com/upload/drive/v3/files';
+const auth={token:null,exp:0,client:null,waiters:[]};
+const DB={folder:null,photos:null,file:null,records:[]};
+const photoCache={};
+
+function loginError(t){const e=$('#loginErr');e.textContent=t;e.hidden=!t;setBusy(false)}
+function setBusy(on,label){const b=$('#gBtn');b.disabled=on;$('#gBtnTxt').textContent=on?(label||'連線中…'):lastEmail()?`以 ${lastEmail()} 繼續`:'使用 Google 帳號登入'}
+function lastEmail(){return store.get('mi-last','')}
+function gisReady(){return new Promise((res,rej)=>{let n=0;const t=()=>{if(window.google&&google.accounts&&google.accounts.oauth2)return res();if(++n>150)return rej(new Error('gis'));setTimeout(t,100)};t()})}
+async function initAuth(){
+ try{await gisReady()}catch(e){loginError('無法載入 Google 登入元件。請確認網路連線，或關閉會阻擋 Google 的擴充功能後重新整理。');return}
+ auth.client=google.accounts.oauth2.initTokenClient({client_id:CLIENT_ID,scope:SCOPES,callback:onToken,error_callback:onTokenError});
+ setBusy(false);
+}
+function onToken(resp){
+ if(resp.error){onTokenError({type:resp.error});return}
+ if(!google.accounts.oauth2.hasGrantedAllScopes(resp,SCOPE_DRIVE)){
+  auth.waiters.splice(0).forEach(w=>w.rej(new Error('scope')));
+  loginError('需要允許「查看、編輯及刪除這個應用程式建立的 Google 雲端硬碟檔案」，才能把紀錄存進你的 Google Drive。請再按一次登入，並勾選這項權限。');return}
+ auth.token=resp.access_token;auth.exp=Date.now()+(Number(resp.expires_in||3600)-120)*1000;
+ $('#reauth').hidden=true;
+ auth.waiters.splice(0).forEach(w=>w.res(auth.token));
+ if(!state.user)afterLogin();
+}
+function onTokenError(err){
+ auth.waiters.splice(0).forEach(w=>w.rej(new Error('auth')));
+ if(state.user)return;
+ const t=err&&err.type;
+ loginError(t==='popup_closed'?'登入視窗已關閉，請再按一次登入。':t==='popup_failed_to_open'?'瀏覽器擋住了登入視窗。請允許這個網站開啟彈出式視窗後再試一次。':t==='access_denied'?'沒有完成授權。這個帳號可能不在測試使用者名單上，請聯絡管理員。':'登入沒有完成，請再試一次。');
+}
+$('#gBtn').addEventListener('click',()=>{
+ if(!auth.client)return;
+ loginError('');setBusy(true);
+ const hint=lastEmail();
+ auth.client.requestAccessToken(hint?{prompt:'',login_hint:hint}:{prompt:'select_account'});
+});
+$('#otherAcct').addEventListener('click',()=>{if(!auth.client)return;loginError('');setBusy(true);auth.client.requestAccessToken({prompt:'select_account'})});
+// The access token lasts about an hour; when it runs out, ask for one tap to reconnect (popups need a user gesture).
+function ensureToken(){
+ if(auth.token&&Date.now()<auth.exp)return Promise.resolve(auth.token);
+ return new Promise((res,rej)=>{auth.waiters.push({res,rej});$('#reauth').hidden=false});
+}
+$('#reauthBtn').addEventListener('click',()=>auth.client.requestAccessToken({prompt:'',login_hint:state.user||lastEmail()}));
+async function gfetch(url,opts={},retry=true){
+ const token=await ensureToken();
+ const r=await fetch(url,{...opts,headers:{...(opts.headers||{}),Authorization:'Bearer '+token}});
+ if(r.status===401&&retry){auth.exp=0;return gfetch(url,opts,false)}
+ return r;
+}
+async function driveErr(r,what){let m='';try{m=(await r.json()).error.message}catch(e){}return new Error(`${what}失敗（${r.status}${m?'：'+m:''}）`)}
+const qs=s=>s.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
+async function findOne(q){
+ const r=await gfetch(`${DRIVE}?q=${encodeURIComponent(q)}&fields=files(id,name)&spaces=drive&pageSize=1&orderBy=createdTime`);
+ if(!r.ok)throw await driveErr(r,'讀取 Google Drive');
+ return (await r.json()).files[0]||null;
+}
+async function createFolder(name,parent){
+ const r=await gfetch(DRIVE+'?fields=id',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name,mimeType:'application/vnd.google-apps.folder',...(parent?{parents:[parent]}:{})})});
+ if(!r.ok)throw await driveErr(r,'建立資料夾');
+ return (await r.json()).id;
+}
+async function upload(meta,blob,fileId){
+ const b='mi'+Math.random().toString(36).slice(2);
+ const body=new Blob([`--${b}\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n${JSON.stringify(meta)}\r\n--${b}\r\nContent-Type: ${blob.type||'application/octet-stream'}\r\n\r\n`,blob,`\r\n--${b}--`]);
+ const r=await gfetch(`${UPLOAD}${fileId?'/'+fileId:''}?uploadType=multipart&fields=id`,{method:fileId?'PATCH':'POST',headers:{'Content-Type':`multipart/related; boundary=${b}`},body});
+ if(!r.ok)throw await driveErr(r,'上傳');
+ return (await r.json()).id;
+}
+async function readDB(){
+ const r=await gfetch(`${DRIVE}/${DB.file}?alt=media`);
+ if(!r.ok)throw await driveErr(r,'讀取紀錄');
+ try{const j=await r.json();return Array.isArray(j.records)?j.records:[]}catch(e){return []}
+}
+async function loadDB(){
+ const folderQ=(n,p)=>`name='${qs(n)}' and mimeType='application/vnd.google-apps.folder' and trashed=false${p?` and '${p}' in parents`:''}`;
+ DB.folder=(await findOne(folderQ(APP_FOLDER)))?.id||await createFolder(APP_FOLDER);
+ DB.photos=(await findOne(folderQ('photos',DB.folder)))?.id||await createFolder('photos',DB.folder);
+ const f=await findOne(`name='${DB_FILE}' and '${DB.folder}' in parents and trashed=false`);
+ if(f){DB.file=f.id;DB.records=await readDB()}
+ else{DB.records=[];DB.file=await upload({name:DB_FILE,parents:[DB.folder],mimeType:'application/json'},dbBlob())}
+}
+function dbBlob(){return new Blob([JSON.stringify({app:'樂器維護紀錄表',version:1,records:DB.records})],{type:'application/json'})}
+// Re-read before writing so a record saved from another device is never overwritten.
+async function saveRecordToDrive(rec){
+ const latest=await readDB(),map=new Map(latest.map(x=>[x.id,x]));
+ map.set(rec.id,rec);
+ DB.records=[...map.values()].sort((a,b)=>b.date.localeCompare(a.date));
+ await upload({mimeType:'application/json'},dbBlob(),DB.file);
+}
+async function compressPhoto(file){
+ let img;try{img=await createImageBitmap(file)}catch(e){return file}
+ const s=Math.min(1,1600/Math.max(img.width,img.height)),c=document.createElement('canvas');
+ c.width=Math.round(img.width*s);c.height=Math.round(img.height*s);
+ c.getContext('2d').drawImage(img,0,0,c.width,c.height);
+ return new Promise(res=>c.toBlob(b=>res(b||file),'image/jpeg',.85));
+}
+function getPhotoUrl(fid){
+ if(!photoCache[fid])photoCache[fid]=gfetch(`${DRIVE}/${fid}?alt=media`).then(async r=>{if(!r.ok)throw await driveErr(r,'讀取照片');return URL.createObjectURL(await r.blob())}).catch(e=>{delete photoCache[fid];throw e});
+ return photoCache[fid];
+}
+function hydrate(root){
+ return Promise.all([...root.querySelectorAll('img[data-fid]')].map(img=>getPhotoUrl(img.dataset.fid).then(u=>{img.src=u}).catch(()=>{img.alt='照片無法載入';img.parentElement.classList.add('ph-err')})));
+}
+function imgTag(u,k){return u.startsWith('fid:')?`<img data-fid="${esc(u.slice(4))}" alt="照片 ${k+1}">`:`<img src="${u}" alt="照片 ${k+1}">`}
+
+async function afterLogin(){
+ setBusy(true,'確認帳號…');
+ try{
+  const u=await (await gfetch('https://www.googleapis.com/oauth2/v3/userinfo')).json();
+  const email=(u.email||'').toLowerCase();
+  if(!(await isAllowed(email))){
+   try{google.accounts.oauth2.revoke(auth.token,()=>{})}catch(e){}
+   auth.token=null;auth.exp=0;
+   loginError(`${email||'這個帳號'} 沒有使用權限。請聯絡管理員把這個帳號加入授權名單，或改用其他帳號登入。`);return}
+  state.user=email;state.name=u.name||email.split('@')[0];state.picture=u.picture||'';
+  store.set('mi-last',email);
+  setBusy(true,'讀取 Google Drive…');
+  await loadDB();
+  enterApp();
+ }catch(e){
+  state.user=null;
+  loginError(`無法連接 Google Drive。${e.message||''} 請確認網路連線，以及 Google Cloud 專案已啟用 Google Drive API。`);
+ }
+}
+function enterApp(){
+ $('#login').hidden=true;$('#app').hidden=false;
+ $('#staffName').textContent=state.name;$('#menuEmail').textContent=`${state.name}（${state.user}）`;
+ const ava=$('#avaTxt');
+ if(state.picture){ava.innerHTML=`<img src="${esc(state.picture)}" alt="" referrerpolicy="no-referrer">`}else ava.textContent=state.name[0].toUpperCase();
+ setBusy(false);renderRecords();
+}
+$('#acctBtn').addEventListener('click',()=>{$('#menu').hidden=!$('#menu').hidden});
+document.addEventListener('click',e=>{if(!e.target.closest('.acct'))$('#menu').hidden=true});
+$('#logoutBtn').addEventListener('click',()=>{
+ try{if(auth.token)google.accounts.oauth2.revoke(auth.token,()=>{})}catch(e){}
+ auth.token=null;auth.exp=0;state.user=null;DB.records=[];
+ for(const k of Object.keys(photoCache))delete photoCache[k];
+ $('#menu').hidden=true;$('#app').hidden=true;$('#login').hidden=false;setBusy(false);
+});
+$('#driveLink').addEventListener('click',e=>{if(DB.folder)e.currentTarget.href=`https://drive.google.com/drive/folders/${DB.folder}`});
+

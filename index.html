@@ -1,0 +1,2156 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="description" content="管樂器維修保養紀錄：Google 帳號登入，紀錄與照片存在自己的 Google Drive。">
+<meta name="theme-color" content="#85590C">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="樂器維護">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icons/icon-192.png" type="image/png">
+<link rel="apple-touch-icon" href="icons/icon-180.png">
+<script src="https://accounts.google.com/gsi/client" async defer></script>
+<style>
+:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);color-scheme:light}
+body{margin:0;-webkit-text-size-adjust:100%}
+img{max-width:100%}
+[hidden]{display:none!important}
+</style>
+<title>樂器維護紀錄表</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&family=Noto+Serif+TC:wght@600;700&family=JetBrains+Mono:wght@500&display=swap">
+<style>
+/* Layout: app shell — top bar + single column on phone (bottom tab bar), two-column workbench on desktop */
+:root{
+  --bg:#EDF0EC; --surface:#FFFFFF; --sunk:#E3E8E3; --fg:#17201B; --muted:#58645D; --line:#D2D9D3;
+  --accent:#85590C; --accent-ink:#FFFFFF; --accent-soft:#F2E5C6;
+  --part:#E8DEC2; --part-stroke:#8A7444; --rep:#C7362B; --rep-ink:#FFFFFF; --rep-soft:#F9DEDA; --ok:#2C7A4E;
+  --f-display:"Noto Serif TC","Songti TC","PMingLiU",serif;
+  --f-body:"Noto Sans TC","PingFang TC","Microsoft JhengHei",system-ui,sans-serif;
+  --f-mono:"JetBrains Mono",ui-monospace,Consolas,monospace;
+  --r:12px;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0F1311; --surface:#171C19; --sunk:#1F2622; --fg:#E5EAE6; --muted:#98A49D; --line:#2B3430;
+  --accent:#E3B252; --accent-ink:#1A1404; --accent-soft:#3A2E14;
+  --part:#3A3426; --part-stroke:#C2A566; --rep:#FF6A5C; --rep-ink:#1E0806; --rep-soft:#4A1F1B; --ok:#5CC48A; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0F1311; --surface:#171C19; --sunk:#1F2622; --fg:#E5EAE6; --muted:#98A49D; --line:#2B3430;
+  --accent:#E3B252; --accent-ink:#1A1404; --accent-soft:#3A2E14;
+  --part:#3A3426; --part-stroke:#C2A566; --rep:#FF6A5C; --rep-ink:#1E0806; --rep-soft:#4A1F1B; --ok:#5CC48A; color-scheme:dark}
+
+*{box-sizing:border-box}
+html,body{height:100%}
+body{background:var(--bg);color:var(--fg);font-family:var(--f-body);font-size:15px;line-height:1.55;-webkit-tap-highlight-color:transparent}
+button,input,select,textarea{font:inherit;color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+h1,h2,h3{text-wrap:balance;margin:0}
+.mono{font-family:var(--f-mono);font-variant-numeric:tabular-nums}
+.eyebrow{font-size:12px;letter-spacing:.12em;color:var(--muted);margin:0}
+
+/* ---------- Login ---------- */
+.login{min-height:100%;display:grid;place-items:center;padding:32px 16px}
+.login-card{width:100%;max-width:400px;background:var(--surface);border:1px solid var(--line);border-radius:18px;padding:32px 24px;display:grid;gap:18px}
+.login-card h1{font-family:var(--f-display);font-size:30px;letter-spacing:.04em}
+.login-card .lead{margin:0;color:var(--muted)}
+.staff-lines{height:26px;background:repeating-linear-gradient(to bottom,var(--line) 0 1px,transparent 1px 6px);border-radius:2px}
+.btn-google{display:flex;align-items:center;justify-content:center;gap:10px;width:100%;padding:13px 16px;border-radius:999px;border:1px solid var(--line);background:var(--surface);font-weight:500}
+.btn-google:hover{border-color:var(--accent)}
+.picker{display:grid;gap:8px}
+.acct-opt{display:flex;align-items:center;gap:12px;width:100%;text-align:left;padding:10px 12px;border:1px solid var(--line);border-radius:10px;background:var(--surface)}
+.acct-opt:hover{border-color:var(--accent);background:var(--accent-soft)}
+.ava{flex:none;width:32px;height:32px;border-radius:50%;display:grid;place-items:center;background:var(--accent);color:var(--accent-ink);font-weight:700;font-size:14px}
+.other{display:flex;gap:8px}
+.other input{flex:1;min-width:0}
+.err{color:var(--rep);margin:0;font-size:14px}
+.proto-note{margin:0;font-size:12.5px;color:var(--muted);padding:10px 12px;background:var(--sunk);border-radius:8px}
+
+/* ---------- Shell ---------- */
+.topbar{position:sticky;top:env(safe-area-inset-top,0px);z-index:20;background:var(--surface);border-bottom:1px solid var(--line);display:flex;align-items:center;gap:12px;padding:10px 16px}
+.brand{display:flex;align-items:center;gap:8px;min-width:0;flex:1}
+.brand h1{font-family:var(--f-display);font-size:19px;letter-spacing:.04em;white-space:nowrap}
+.ver{font-family:var(--f-mono);font-size:12px;padding:3px 9px;border-radius:999px;border:1px solid var(--accent);background:var(--accent-soft);color:var(--accent);font-weight:500}
+.acct{position:relative;display:flex;align-items:center;gap:8px}
+.mode{font-size:11.5px;color:var(--muted);border:1px dashed var(--line);border-radius:999px;padding:2px 8px;white-space:nowrap}
+.avatar{border:0;padding:0;background:none}
+.menu{position:absolute;right:0;top:44px;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:12px;min-width:240px;display:grid;gap:10px;box-shadow:0 10px 30px rgb(0 0 0 / .12)}
+.menu p{margin:0;font-size:13px;color:var(--muted);word-break:break-all}
+
+.tabs{position:fixed;left:0;right:0;bottom:0;z-index:25;display:grid;grid-template-columns:1fr 1fr;background:var(--surface);border-top:1px solid var(--line);padding:6px 16px calc(6px + env(safe-area-inset-bottom,0px))}
+.tabs button{border:0;background:none;display:grid;justify-items:center;gap:2px;padding:6px;font-size:12.5px;color:var(--muted);border-radius:10px}
+.tabs button svg{width:22px;height:22px;stroke:currentColor;fill:none;stroke-width:1.8}
+.tabs button[aria-current="page"]{color:var(--accent);font-weight:700}
+main{max-width:1180px;margin:0 auto;padding:16px 16px 110px}
+@media (min-width:900px){
+  .tabs{position:static;display:flex;gap:4px;padding:0;border:0;background:none}
+  .tabs button{display:flex;align-items:center;gap:6px;padding:8px 14px;font-size:14px}
+  .tabs button[aria-current="page"]{background:var(--accent-soft)}
+  .tabs button svg{width:18px;height:18px}
+  main{padding:24px 24px 48px}
+  .brand h1{font-size:22px}
+}
+@media (max-width:420px){.mode{display:none}}
+
+/* ---------- Form ---------- */
+.form{display:grid;gap:14px;grid-template-areas:"basic" "inst" "svc" "diagram" "photos" "notes" "save"}
+@media (min-width:900px){
+  .form{grid-template-columns:minmax(0,1fr) minmax(0,1fr);grid-template-areas:"basic inst" "svc svc" "diagram diagram" "photos photos" "notes notes" "save save";align-items:start}
+}
+.s-svc{grid-area:svc}
+.svc{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+@media (min-width:700px){.svc{grid-template-columns:repeat(4,minmax(0,1fr))}}
+.svc-opt{display:flex;align-items:center;gap:10px;min-height:52px;padding:10px 12px;border:1.5px solid var(--line);border-radius:12px;background:var(--surface);text-align:left;font-weight:500}
+.svc-opt .box{flex:none;width:20px;height:20px;border-radius:6px;border:1.5px solid var(--muted);display:grid;place-items:center}
+.svc-opt[aria-pressed="true"]{border-color:var(--accent);background:var(--accent-soft);color:var(--fg)}
+.svc-opt[aria-pressed="true"] .box{background:var(--accent);border-color:var(--accent)}
+.svc-opt[aria-pressed="true"] .box::after{content:"";width:5px;height:10px;border:solid var(--accent-ink);border-width:0 2px 2px 0;transform:translateY(-1px) rotate(45deg)}
+.svc-tags{display:inline-flex;flex-wrap:wrap;gap:4px;margin-left:4px}
+.svc-tag{font-size:11px;padding:1px 7px;border-radius:999px;background:var(--accent-soft);color:var(--accent)}
+.s-basic{grid-area:basic}.s-inst{grid-area:inst}.s-diagram{grid-area:diagram}.s-photos{grid-area:photos}.s-notes{grid-area:notes}.save-row{grid-area:save}
+.staff-tag{font-size:13px;color:var(--muted);text-align:right;min-width:0}
+.staff-tag b{color:var(--fg);font-weight:700}
+.sub{display:grid;gap:10px;padding:12px;border-radius:10px;background:var(--sunk)}
+.sub[hidden]{display:none!important}
+.search{position:relative}
+.search input{padding-left:38px}
+.search svg{position:absolute;left:12px;top:14px;width:18px;height:18px;stroke:var(--muted);fill:none;stroke-width:2;pointer-events:none}
+.results{position:absolute;left:0;right:0;top:calc(100% + 4px);z-index:15;background:var(--surface);border:1px solid var(--line);border-radius:10px;max-height:280px;overflow-y:auto;box-shadow:0 10px 30px rgb(0 0 0 / .14)}
+.results button{display:grid;width:100%;text-align:left;border:0;border-bottom:1px solid var(--line);background:none;padding:9px 12px;gap:1px}
+.results button:hover,.results button:focus-visible{background:var(--accent-soft)}
+.results small{color:var(--muted);font-size:12px}
+.results p{margin:0;padding:12px;color:var(--muted);font-size:13.5px}
+.or{font-size:12px;color:var(--muted);text-align:center;margin:0}
+.cfg-box{display:grid;gap:8px;padding-top:10px;border-top:1px dashed var(--line)}
+.cfg{display:grid;gap:10px;grid-template-columns:repeat(auto-fit,minmax(160px,1fr))}
+.hint{margin:0;font-size:12.5px;color:var(--muted)}
+.hole{fill:var(--sunk);stroke:var(--part-stroke);stroke-width:1;pointer-events:none}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:16px;display:grid;gap:12px;min-width:0}
+.sec-head{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.card h2{font-size:16px;font-weight:700}
+.field{display:grid;gap:5px}
+.field label{font-size:13px;color:var(--muted);font-weight:500}
+input[type=text],input[type=email],input[type=date],select,textarea{width:100%;padding:11px 12px;border:1px solid var(--line);border-radius:10px;background:var(--surface);min-height:46px}
+textarea{resize:vertical;min-height:70px}
+input[readonly]{background:var(--sunk);color:var(--muted)}
+select:disabled{opacity:.55}
+.date-row{display:flex;gap:8px;align-items:center}
+.date-row input{flex:1;min-width:0;font-family:var(--f-mono)}
+.wk{flex:none;padding:10px 12px;border-radius:10px;background:var(--accent-soft);color:var(--accent);font-weight:700;font-size:14px}
+.step{display:inline-grid;place-items:center;width:20px;height:20px;border-radius:50%;background:var(--sunk);font-size:11px;font-family:var(--f-mono);margin-right:6px;color:var(--muted)}
+.pill{font-size:12.5px;padding:3px 10px;border-radius:999px;background:var(--sunk);color:var(--muted);white-space:nowrap}
+.pill.hot{background:var(--rep);color:var(--rep-ink)}
+
+/* Diagram */
+.diagram-empty{border:1.5px dashed var(--line);border-radius:10px;padding:36px 16px;text-align:center;color:var(--muted)}
+.diagram-scroll{overflow-x:auto;border-radius:10px;background:var(--sunk);padding:8px;-webkit-overflow-scrolling:touch}
+.diagram-scroll svg{display:block;width:100%;height:auto}
+.scroll-hint{font-size:12px;color:var(--muted);margin:-4px 0 0;text-align:center}
+.legend{display:flex;gap:14px;flex-wrap:wrap;font-size:12.5px;color:var(--muted)}
+.legend i{display:inline-block;width:12px;height:12px;border-radius:3px;vertical-align:-1px;margin-right:5px;border:1px solid var(--part-stroke);background:var(--part)}
+.legend i.r{background:var(--rep);border-color:var(--rep)}
+.part{cursor:pointer;outline:none}
+.part :is(rect,circle,ellipse,path.fill){fill:var(--part);stroke:var(--part-stroke);stroke-width:1.4;transition:fill .15s}
+.part .tube-o{fill:none;stroke:var(--part-stroke)}
+.part .tube{fill:none;stroke:var(--part);transition:stroke .15s}
+.part:hover :is(rect,circle,ellipse,path.fill),.part:focus-visible :is(rect,circle,ellipse,path.fill){stroke:var(--accent);stroke-width:2.6}
+.part:hover .tube-o,.part:focus-visible .tube-o{stroke:var(--accent)}
+.part.sel :is(rect,circle,ellipse,path.fill){fill:var(--rep);stroke:var(--rep)}
+.part.sel .tube{stroke:var(--rep)}
+.part.sel .tube-o{stroke:var(--rep)}
+.tag{font-family:var(--f-body);font-size:9px;font-weight:700;fill:var(--fg);pointer-events:none;text-anchor:middle;dominant-baseline:central}
+.part.sel .tag{fill:var(--rep-ink)}
+.deco{fill:none;stroke:var(--part-stroke);stroke-width:1.2;pointer-events:none}
+.parts-list{display:flex;flex-wrap:wrap;gap:6px}
+.pchip{border:1px solid var(--line);background:var(--surface);border-radius:999px;padding:6px 11px;font-size:13px}
+.pchip:hover{border-color:var(--accent)}
+.pchip.sel{background:var(--rep);border-color:var(--rep);color:var(--rep-ink)}
+details.plist summary{cursor:pointer;font-size:13.5px;color:var(--muted);padding:4px 0}
+details.plist[open] summary{margin-bottom:8px}
+
+.summary{display:grid;gap:8px}
+.summary .none{margin:0;color:var(--muted);font-size:14px}
+.sum-item{display:grid;gap:4px;text-align:left;width:100%;border:1px solid var(--line);border-left:4px solid var(--rep);border-radius:10px;background:var(--surface);padding:10px 12px}
+.sum-item:hover{background:var(--rep-soft)}
+.sum-item b{font-size:14.5px}
+.sum-line{font-size:13.5px;color:var(--muted)}
+.sum-line strong{color:var(--fg);font-weight:500}
+
+/* Photos */
+.photos{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+@media (min-width:700px){.photos{grid-template-columns:repeat(3,minmax(0,1fr))}}
+.ph{display:grid;gap:6px;min-width:0}
+.ph-box{position:relative;aspect-ratio:4/3;max-width:100%;border:1.5px dashed var(--line);border-radius:10px;background:var(--sunk);display:grid;place-items:center;overflow:hidden;color:var(--muted);font-size:13px;text-align:center}
+.ph-box img{width:100%;height:100%;object-fit:cover}
+.ph-box input{position:absolute;inset:0;opacity:0;cursor:pointer}
+.ph-box.has{border-style:solid}
+.ph-num{position:absolute;left:6px;top:6px;font-family:var(--f-mono);font-size:11px;background:var(--surface);border-radius:6px;padding:1px 6px;color:var(--muted);z-index:1}
+.ph-del{position:absolute;right:6px;top:6px;z-index:2;border:0;border-radius:999px;background:var(--surface);padding:3px 9px;font-size:12px;color:var(--rep)}
+.ph textarea{min-height:56px;font-size:13.5px;padding:8px 10px}
+
+.save-row{display:flex;align-items:center;justify-content:flex-end;gap:12px;flex-wrap:wrap}
+.save-row p{margin:0;color:var(--rep);font-size:14px;flex:1;min-width:0}
+.btn-primary{border:0;background:var(--accent);color:var(--accent-ink);font-weight:700;padding:13px 26px;border-radius:999px;min-height:48px}
+.btn-ghost{border:1px solid var(--line);background:var(--surface);padding:10px 16px;border-radius:999px}
+.btn-ghost.warn{color:var(--rep)}
+
+/* Sheet */
+.backdrop{position:fixed;inset:0;background:rgb(0 0 0 / .4);z-index:40}
+.sheet{position:fixed;left:0;right:0;bottom:0;z-index:41;background:var(--surface);border-radius:18px 18px 0 0;max-height:88%;display:grid;grid-template-rows:auto minmax(0,1fr) auto}
+.sheet-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;padding:16px 16px 10px;border-bottom:1px solid var(--line)}
+.sheet-head h2{font-size:18px}
+.x{border:0;background:var(--sunk);border-radius:999px;width:36px;height:36px;flex:none;font-size:18px;line-height:1}
+.sheet-body{overflow-y:auto;padding:12px 16px;display:grid;gap:12px;align-content:start}
+.sheet-foot{display:flex;gap:10px;justify-content:space-between;padding:12px 16px calc(12px + env(safe-area-inset-bottom,0px));border-top:1px solid var(--line)}
+.ri{border:1px solid var(--line);border-radius:12px;padding:12px;display:grid;gap:8px}
+.ri.on{border-color:var(--rep);background:var(--rep-soft)}
+.ri h3{font-size:15px;display:flex;align-items:center;gap:8px}
+.ri h3 .dot{width:9px;height:9px;border-radius:50%;background:var(--line)}
+.ri.on h3 .dot{background:var(--rep)}
+.lbl{margin:0;font-size:12px;color:var(--muted);letter-spacing:.06em}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chip{border:1px solid var(--line);background:var(--surface);border-radius:999px;padding:7px 12px;font-size:13.5px;min-height:36px}
+.chip[aria-pressed="true"]{background:var(--fg);border-color:var(--fg);color:var(--surface)}
+.chip.m[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.ri input.note{min-height:40px;padding:8px 10px;font-size:13.5px}
+@media (min-width:900px){
+  .sheet{left:auto;top:0;width:440px;max-height:none;border-radius:0;border-left:1px solid var(--line)}
+}
+
+/* Modal */
+.modal{position:fixed;z-index:41;left:16px;right:16px;top:50%;transform:translateY(-50%);max-width:520px;margin:0 auto;max-height:80%;overflow:auto;background:var(--surface);border-radius:16px;padding:20px;display:grid;gap:14px}
+.vlog{display:grid;gap:16px}
+.vlog article{display:grid;gap:6px;padding-left:14px;border-left:2px solid var(--accent)}
+.vlog h3{font-size:15px;display:flex;gap:10px;align-items:baseline}
+.vlog ul{margin:0;padding-left:18px;color:var(--muted);font-size:14px;display:grid;gap:3px}
+
+/* Records */
+.list-head{display:flex;align-items:baseline;justify-content:space-between;gap:12px;margin-bottom:12px;flex-wrap:wrap}
+.list-head h2{font-size:20px;font-family:var(--f-display)}
+.records{display:grid;gap:12px}
+@media (min-width:900px){.records{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.rec{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:16px;display:grid;gap:8px;min-width:0}
+.rec-top{display:flex;justify-content:space-between;gap:8px;align-items:flex-start}
+.rec h3{font-size:17px}
+.rec .meta{font-size:13px;color:var(--muted)}
+.badge{font-size:11.5px;padding:2px 8px;border-radius:999px;background:var(--sunk);color:var(--muted);white-space:nowrap}
+.badge.sample{background:var(--accent-soft);color:var(--accent)}
+.rec ul{margin:0;padding-left:18px;font-size:14px;display:grid;gap:2px}
+.empty{color:var(--muted);text-align:center;padding:40px 16px;border:1.5px dashed var(--line);border-radius:var(--r)}
+
+.toast{position:fixed;left:50%;bottom:calc(90px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);z-index:60;background:var(--fg);color:var(--surface);padding:10px 18px;border-radius:999px;font-size:14px;max-width:calc(100% - 32px)}
+@media (min-width:900px){.toast{bottom:32px}}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+
+/* ---------- Stats ---------- */
+:root{--fam-ww:#2a78d6;--fam-br:#eb6834;--fam-pc:#1baf7a;--paper:#FFFFFF;--paper-ink:#1E2420;--paper-muted:#5D6862;--paper-line:#CFD6D0;--paper-accent:#85590C;--hl:#E5281D;--hl-glow:#FFD43B}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){--fam-ww:#3987e5;--fam-br:#d95926;--fam-pc:#199e70}}
+:root[data-theme="dark"]{--fam-ww:#3987e5;--fam-br:#d95926;--fam-pc:#199e70}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
+.stats-head{display:flex;justify-content:space-between;align-items:flex-end;gap:12px;flex-wrap:wrap;margin-bottom:14px}
+.stats-head h2{font-family:var(--f-display);font-size:24px}
+.stats-ctrl{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.stats-ctrl select{width:auto;min-height:40px;padding:6px 10px;font-family:var(--f-mono)}
+.chk{display:inline-flex;gap:6px;align-items:center;font-size:13.5px;color:var(--muted);cursor:pointer}
+.btn-primary.sm{padding:9px 18px;min-height:40px}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-bottom:14px}
+.kpi{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:12px 14px;display:grid;gap:2px;min-width:0}
+.kpi span{font-size:12.5px;color:var(--muted)}
+.kpi b{font-family:var(--f-mono);font-size:24px;font-variant-numeric:tabular-nums;line-height:1.2}
+.kpi small{font-size:12.5px;color:var(--muted)}
+.viz-grid{display:grid;gap:14px;grid-template-columns:minmax(0,1fr)}
+@media (min-width:900px){.viz-grid{grid-template-columns:minmax(0,5fr) minmax(0,7fr)}}
+.viz{margin:0;background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:14px;display:grid;gap:10px;align-content:start;min-width:0}
+.viz figcaption{display:grid;gap:2px}
+.viz figcaption span{font-size:12.5px;color:var(--muted)}
+.rose-wrap{max-width:380px;width:100%;margin:0 auto}
+.rose-wrap svg{width:100%;height:auto;display:block;overflow:visible}
+.petal{cursor:pointer;stroke:var(--surface);stroke-width:1.5;transform-box:view-box;transform-origin:170px 170px;animation:bloom .7s cubic-bezier(.2,.9,.25,1.15) both}
+.petal-g:hover .petal,.petal-g:focus-visible .petal{filter:brightness(1.12)}
+.petal-g.dim .petal{opacity:.25}
+.petal-g{outline:none}
+.f-ww{fill:var(--fam-ww);background:var(--fam-ww)}.f-br{fill:var(--fam-br);background:var(--fam-br)}.f-pc{fill:var(--fam-pc);background:var(--fam-pc)}
+.fam-legend{justify-content:center}
+.fam-legend i{border:0}
+.ring{fill:none;stroke:var(--line);stroke-width:1}
+.axis-t{font-size:11px;fill:var(--muted);text-anchor:middle;dominant-baseline:central;font-family:var(--f-body)}
+.axis-t.on{fill:var(--fg);font-weight:700}
+.center-n{font-family:var(--f-mono);font-size:26px;fill:var(--fg);text-anchor:middle;dominant-baseline:central}
+.center-l{font-size:11px;fill:var(--muted);text-anchor:middle}
+@keyframes bloom{from{transform:scale(0) rotate(-25deg);opacity:0}to{transform:none;opacity:1}}
+.matrix-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch}
+.matrix-wrap svg{display:block}
+.mrow-l{font-size:12.5px;fill:var(--fg);cursor:pointer;dominant-baseline:central}
+.mrow-l:hover,.mrow:focus-visible .mrow-l{fill:var(--accent);text-decoration:underline}
+.mrow{outline:none}
+.mrow.on .mrow-bg{fill:var(--accent-soft)}
+.mrow-bg{fill:transparent}
+.mcol.on{fill:var(--accent-soft)}
+.grid-l{stroke:var(--line);stroke-width:1}
+.dot{transform-box:fill-box;transform-origin:center;animation:pop .5s cubic-bezier(.3,1.6,.5,1) both;stroke:var(--surface);stroke-width:1.5}
+.dot-n{font-family:var(--f-mono);font-size:10px;fill:var(--fg);text-anchor:middle;dominant-baseline:central;pointer-events:none}
+.tot{font-family:var(--f-mono);font-size:12px;fill:var(--muted);dominant-baseline:central}
+@keyframes pop{from{transform:scale(0)}to{transform:scale(1)}}
+.tip{position:fixed;z-index:70;pointer-events:none;background:var(--fg);color:var(--surface);font-size:12.5px;line-height:1.45;padding:7px 10px;border-radius:8px;max-width:240px;box-shadow:0 6px 20px rgb(0 0 0 / .2)}
+.tip b{font-family:var(--f-mono)}
+.drill{margin-top:14px;background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:16px;display:grid;gap:12px;clip-path:circle(150% at var(--ox,50%) var(--oy,0%));transition:clip-path .65s cubic-bezier(.6,0,.2,1)}
+.drill.closed{clip-path:circle(0% at var(--ox,50%) var(--oy,0%))}
+.drill h3{font-size:18px}
+.tree{display:flex;gap:2px;height:230px;border-radius:10px;overflow:hidden}
+.tb{display:flex;flex-direction:column;gap:2px;min-width:0;animation:rise .55s cubic-bezier(.2,.8,.2,1) both}
+.tm{position:relative;min-height:0;padding:6px 8px;display:flex;flex-direction:column;justify-content:flex-end;overflow:hidden;color:var(--fg);background:color-mix(in oklab,var(--fc) var(--mix),var(--surface))}
+.tm b{font-size:12.5px;line-height:1.25;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.tm span{font-family:var(--f-mono);font-size:12px;color:var(--fg)}
+.tm .brand{position:absolute;top:6px;left:8px;font-size:11px;letter-spacing:.06em;color:var(--fg);opacity:.8}
+@keyframes rise{from{transform:translateY(24px) scale(.96);opacity:0}to{transform:none;opacity:1}}
+.mtable{width:100%;border-collapse:collapse;font-size:13.5px}
+.mtable th,.mtable td{text-align:left;padding:7px 8px;border-bottom:1px solid var(--line)}
+.mtable td.n{text-align:right;font-family:var(--f-mono)}
+.mtable th{font-size:12px;color:var(--muted);font-weight:500}
+.list-ctrl{display:flex;align-items:center;gap:10px;margin:22px 0 10px;flex-wrap:wrap}
+.list-ctrl h3{font-size:17px;margin-right:auto}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:999px;padding:3px;background:var(--surface)}
+.seg button{border:0;background:none;padding:6px 14px;border-radius:999px;font-size:13.5px;color:var(--muted)}
+.seg button[aria-pressed="true"]{background:var(--fg);color:var(--surface)}
+.pill.filter{border:1px solid var(--accent);background:var(--accent-soft);color:var(--accent)}
+.groups{display:grid;gap:10px}
+.grp{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);overflow:hidden}
+.grp summary{display:flex;align-items:center;gap:10px;padding:12px 14px;cursor:pointer;list-style:none}
+.grp summary::-webkit-details-marker{display:none}
+.grp summary b{font-size:15px}
+.grp summary .cnt{margin-left:auto;font-family:var(--f-mono);font-size:13px;color:var(--muted)}
+.grp summary i{width:10px;height:10px;border-radius:50%;flex:none}
+.grp summary::after{content:"";width:8px;height:8px;border-right:2px solid var(--muted);border-bottom:2px solid var(--muted);transform:rotate(45deg);transition:transform .2s}
+.grp[open] summary::after{transform:rotate(-135deg)}
+.rows{display:grid;border-top:1px solid var(--line)}
+.row{display:grid;grid-template-columns:auto minmax(0,1fr);gap:4px 14px;padding:10px 14px;border-bottom:1px solid var(--line);font-size:13.5px}
+.row:last-child{border-bottom:0}
+.row .d{font-family:var(--f-mono);color:var(--muted);font-size:12.5px;grid-row:span 2}
+.row .t{min-width:0}
+.row .t b{font-weight:700}
+.row .s{color:var(--muted);min-width:0}
+.badge.mini{font-size:10.5px;padding:1px 6px;margin-left:6px;vertical-align:1px}
+
+/* ---------- Report ---------- */
+.report{position:fixed;inset:0;z-index:50;background:var(--bg);overflow-y:auto;padding:calc(env(safe-area-inset-top,0px) + 0px) 0 env(safe-area-inset-bottom,0px);animation:repIn .45s cubic-bezier(.2,.8,.2,1)}
+@keyframes repIn{from{clip-path:inset(0 0 100% 0)}to{clip-path:inset(0)}}
+.rep-bar{position:relative;z-index:2;background:var(--surface);border-bottom:1px solid var(--line);padding:12px 16px;display:grid;gap:10px}
+.rep-bar h2{font-family:var(--f-display);font-size:20px}
+.rep-ctrl{display:grid;gap:10px;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));align-items:end}
+.mask{border:1px solid var(--line);border-radius:10px;padding:6px 12px 10px;display:flex;gap:6px 14px;flex-wrap:wrap;margin:0}
+.mask legend{font-size:12px;color:var(--muted);padding:0 4px}
+.rep-actions{display:flex;gap:8px;flex-wrap:wrap}
+@media (min-width:900px){.rep-bar{position:sticky;top:0}}
+.rep-body{padding:16px;display:grid;justify-items:center;gap:18px}
+.txt{width:100%;max-width:820px;background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:18px;margin:0;white-space:pre-wrap;word-break:break-word;font-family:var(--f-body);font-size:14px;line-height:1.75}
+/* A4 paper: fixed paper colours in both themes, because it represents the printed page */
+.page{width:100%;max-width:794px;aspect-ratio:210/297;background:var(--paper);color:var(--paper-ink);position:relative;padding:5.5% 6.5%;display:flex;flex-direction:column;gap:2.2%;box-shadow:0 8px 30px rgb(0 0 0 / .18);font-size:clamp(9px,1.75vw,14px);animation:sheet .6s cubic-bezier(.2,.8,.2,1) both;overflow:hidden;color-scheme:light}
+@keyframes sheet{from{transform:translateY(30px) rotate(-1.2deg);opacity:0}to{transform:none;opacity:1}}
+.page::before{content:"";position:absolute;inset:2.4%;border:2px solid var(--paper-accent);outline:1px solid var(--paper-accent);outline-offset:-7px;pointer-events:none}
+.page .orn{position:absolute;width:9%;aspect-ratio:1;pointer-events:none;color:var(--paper-accent)}
+.page .orn svg{width:100%;height:100%;display:block}
+.orn.tl{left:1.2%;top:1.2%}.orn.tr{right:1.2%;top:1.2%;transform:scaleX(-1)}.orn.bl{left:1.2%;bottom:1.2%;transform:scaleY(-1)}.orn.br{right:1.2%;bottom:1.2%;transform:scale(-1)}
+.pg-head{display:flex;justify-content:space-between;align-items:flex-end;border-bottom:1px solid var(--paper-line);padding-bottom:1.2%;gap:8px}
+.pg-head .brandline{font-family:var(--f-display);font-size:1.5em;letter-spacing:.08em}
+.pg-head .pg-sub{color:var(--paper-muted);font-size:.85em}
+.pg-foot{margin-top:auto;display:flex;justify-content:space-between;color:var(--paper-muted);font-size:.8em;border-top:1px solid var(--paper-line);padding-top:1%}
+.page h4{margin:0;font-family:var(--f-display);font-size:1.6em}
+.info{display:grid;grid-template-columns:auto 1fr auto 1fr;gap:.35em 1em;font-size:.95em}
+.info dt{color:var(--paper-muted)}
+.info dd{margin:0;font-weight:500;min-width:0}
+.pg-dia{border:1px solid var(--paper-line);border-radius:6px;padding:2%;background:#F7F8F5}
+.pg-dia svg{width:100%;height:auto;max-height:15em;display:block}
+.pg-dia .part :is(rect,circle,ellipse,path.fill){fill:#ECE5CF;stroke:#8A7444}
+.pg-dia .part .tube{stroke:#ECE5CF}.pg-dia .part .tube-o{stroke:#8A7444}
+.pg-dia .part.sel :is(rect,circle,ellipse,path.fill){fill:var(--hl);stroke:var(--hl)}
+.pg-dia .part.sel .tube{stroke:var(--hl)}.pg-dia .part.sel .tube-o{stroke:var(--hl)}
+.pg-dia .part.sel{filter:drop-shadow(0 0 3px var(--hl-glow)) drop-shadow(0 0 2px var(--hl-glow))}
+.pg-dia .tag{fill:#1E2420}.pg-dia .part.sel .tag{fill:#fff}
+.pg-dia .hole{fill:#F7F8F5;stroke:#8A7444}
+.pg-dia .deco{stroke:#8A7444}
+.badge-c{fill:var(--paper-ink);stroke:#fff;stroke-width:1.5}
+.badge-t{fill:#fff;font-size:10px;font-weight:700;text-anchor:middle;dominant-baseline:central;font-family:var(--f-mono)}
+.rlist{margin:0;padding:0;list-style:none;display:grid;gap:.45em;font-size:.95em}
+.rlist li{display:grid;grid-template-columns:1.6em 1fr;gap:.5em}
+.rlist .no{width:1.5em;height:1.5em;border-radius:50%;background:var(--paper-ink);color:#fff;display:grid;place-items:center;font-family:var(--f-mono);font-size:.85em}
+.rlist small{color:var(--paper-muted)}
+.replaced{font-size:.95em;padding:.5em .8em;border-left:3px solid var(--hl);background:#FDF1EF}
+.ph-table{width:100%;border-collapse:collapse;table-layout:fixed;flex:1}
+.ph-table td{border:1px solid var(--paper-line);padding:1.2%;vertical-align:top;width:50%}
+.ph-cell{display:grid;gap:.4em}
+.ph-img{aspect-ratio:4/3;background:#EEF0EC;display:grid;place-items:center;color:var(--paper-muted);font-size:.85em;overflow:hidden;border-radius:3px}
+.ph-img img{width:100%;height:100%;object-fit:cover}
+.ph-cap{font-size:.88em;min-height:1.4em}
+.ph-cap b{font-family:var(--f-mono);margin-right:.4em}
+.cover-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:1em;margin-top:2%}
+.cover-stats div{border:1px solid var(--paper-line);padding:.8em;text-align:center}
+.cover-stats b{display:block;font-family:var(--f-mono);font-size:2em}
+.cover-list{columns:2;font-size:.95em;margin:0;padding-left:1.2em}
+@media print{
+  body *{visibility:hidden}
+  #repBody,#repBody *{visibility:visible}
+  #repBody{position:absolute;left:0;top:0;padding:0;gap:0}
+  .report{position:static;overflow:visible}
+  .page{box-shadow:none;max-width:none;width:210mm;height:297mm;aspect-ratio:auto;break-after:page;animation:none;font-size:12px}
+  .txt{border:0}
+}
+@media (prefers-reduced-motion:reduce){.petal,.dot,.tb,.page,.report{animation:none!important}.drill{transition:none}}
+.row{cursor:pointer;transition:background .15s}
+.row:hover,.row:focus-visible{background:var(--accent-soft);outline:none}
+.row .go{grid-column:2;font-size:12px;color:var(--accent)}
+.rv-bar{display:flex;justify-content:space-between;align-items:center;position:sticky;top:0}
+.ph-img button{all:unset;display:block;width:100%;height:100%;cursor:zoom-in}
+.ph-img button:focus-visible{outline:3px solid var(--paper-accent);outline-offset:-3px}
+.lightbox{position:fixed;inset:0;z-index:80;background:rgb(8 10 9 / .92);display:grid;grid-template-columns:auto minmax(0,1fr) auto;align-items:center;gap:8px;padding:calc(env(safe-area-inset-top,0px) + 56px) 8px calc(env(safe-area-inset-bottom,0px) + 16px);animation:lbIn .35s ease both}
+@keyframes lbIn{from{opacity:0}to{opacity:1}}
+.lightbox figure{margin:0;display:grid;gap:10px;justify-items:center;min-width:0;animation:lbZoom .4s cubic-bezier(.2,.9,.3,1.1) both}
+@keyframes lbZoom{from{transform:scale(.85);opacity:0}to{transform:none;opacity:1}}
+.lightbox img{max-width:100%;max-height:72vh;border-radius:6px;box-shadow:0 10px 40px rgb(0 0 0 / .5);background:#fff}
+.lightbox figcaption{color:#F2F4F1;font-size:15px;text-align:center}
+.lb-close{position:absolute;top:calc(env(safe-area-inset-top,0px) + 12px);right:16px;border:0;border-radius:999px;background:#F2F4F1;color:#141816;font-weight:700;padding:10px 18px;font-size:15px}
+.lb-nav{border:0;background:rgb(255 255 255 / .14);color:#fff;width:44px;height:64px;border-radius:12px;font-size:30px;line-height:1}
+.lb-nav:disabled{opacity:.2}
+@media (prefers-reduced-motion:reduce){.lightbox,.lightbox figure{animation:none}}
+.fam-legend .f-ww{background:var(--fam-ww)}.fam-legend .f-br{background:var(--fam-br)}.fam-legend .f-pc{background:var(--fam-pc)}
+.link-btn{border:0;background:none;color:var(--accent);font-size:13.5px;text-decoration:underline;padding:4px;justify-self:center}
+.btn-google:disabled{opacity:.6;cursor:progress}
+a.mode{text-decoration:none;color:var(--muted)}
+a.mode:hover{color:var(--accent);border-color:var(--accent)}
+.ava img{width:100%;height:100%;border-radius:50%;object-fit:cover}
+.ava{overflow:hidden}
+.reauth{position:fixed;left:16px;right:16px;bottom:calc(84px + env(safe-area-inset-bottom,0px));z-index:90;max-width:520px;margin:0 auto;background:var(--fg);color:var(--surface);border-radius:14px;padding:12px 14px;display:flex;gap:12px;align-items:center;box-shadow:0 10px 30px rgb(0 0 0 / .25)}
+.reauth p{margin:0;flex:1;font-size:14px}
+.ph-err{color:var(--paper-muted)}
+.btn-primary:disabled{opacity:.7;cursor:progress}
+</style>
+
+</head>
+<body>
+<!-- ============ Login ============ -->
+<section id="login" class="login">
+  <div class="login-card">
+    <p class="eyebrow">管樂器保養日誌</p>
+    <h1>樂器維護紀錄表</h1>
+    <div class="staff-lines" aria-hidden="true"></div>
+    <p class="lead">用 Google 帳號登入。紀錄和照片會存進你自己的 Google Drive。</p>
+    <button id="gBtn" class="btn-google" type="button" disabled>
+      <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10" fill="none" stroke="currentColor" stroke-width="2"/><path d="M12 7v5l3 2" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+      <span id="gBtnTxt">載入中…</span>
+    </button>
+    <button id="otherAcct" class="link-btn" type="button">使用其他 Google 帳號</button>
+    <p id="loginErr" class="err" role="alert" hidden></p>
+    <p class="proto-note">只有授權的帳號能使用。第一次登入時，Google 會詢問是否允許本 App 存取「它自己建立的雲端硬碟檔案」，請按「允許」。</p>
+  </div>
+</section>
+
+<!-- ============ App ============ -->
+<div id="app" hidden>
+  <header class="topbar">
+    <div class="brand">
+      <h1>樂器維護紀錄表</h1>
+      <button id="verBtn" class="ver" type="button" aria-label="查看改版紀錄">V1</button>
+    </div>
+    <nav class="tabs" aria-label="主選單">
+      <button type="button" data-view="new" aria-current="page"><svg viewBox="0 0 24 24"><rect x="4" y="3" width="16" height="18" rx="2"/><path d="M12 8v8M8 12h8"/></svg>新增紀錄</button>
+      <button type="button" data-view="list"><svg viewBox="0 0 24 24"><path d="M8 6h12M8 12h12M8 18h12"/><circle cx="4" cy="6" r="1"/><circle cx="4" cy="12" r="1"/><circle cx="4" cy="18" r="1"/></svg>歷史紀錄</button>
+    </nav>
+    <div class="acct">
+      <a class="mode" id="driveLink" href="https://drive.google.com/" target="_blank" rel="noopener">Google Drive</a>
+      <button id="acctBtn" class="avatar" type="button" aria-label="帳號選單"><span class="ava" id="avaTxt">A</span></button>
+      <div id="menu" class="menu" hidden>
+        <p>已登入</p><strong id="menuEmail" style="word-break:break-all"></strong>
+        <p>紀錄與照片存在此帳號 Google Drive 的「樂器維護紀錄」資料夾。</p>
+        <button id="logoutBtn" class="btn-ghost warn" type="button">登出</button>
+      </div>
+    </div>
+  </header>
+
+  <main>
+    <!-- New record -->
+    <section id="view-new">
+      <form id="recForm" class="form" novalidate>
+        <section class="card s-basic">
+          <div class="sec-head"><h2>基本資料</h2><span class="staff-tag">維修人員 <b id="staffName"></b></span></div>
+          <div class="field">
+            <label for="date">日期</label>
+            <div class="date-row"><input id="date" type="date" required><span id="weekday" class="wk">星期－</span></div>
+          </div>
+          <div class="field"><label for="custType">客戶</label>
+            <select id="custType"><option value="">請選擇客戶類型</option><option value="group">團體</option><option value="school">學校</option><option value="person">個人</option></select>
+          </div>
+          <div class="sub" id="custGroup" hidden><div class="field"><label for="groupName">團體名稱</label><input id="groupName" type="text" placeholder="例：新北市青年管樂團"></div></div>
+          <div class="sub" id="custPerson" hidden><div class="field"><label for="personName">客人姓名</label><input id="personName" type="text" placeholder="例：陳小姐"></div></div>
+          <div class="sub" id="custSchool" hidden>
+            <div class="field"><label for="schLevel">學制</label>
+              <select id="schLevel"><option value="">請選擇學制</option><option>國小</option><option>國中</option><option>高中職</option><option>大專院校</option></select></div>
+            <div class="field search"><label for="schSearch">搜尋學校</label>
+              <div style="position:relative"><svg viewBox="0 0 24 24" style="top:14px"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></svg>
+              <input id="schSearch" type="text" placeholder="輸入關鍵字，例：光復、中山" autocomplete="off" disabled>
+              <div id="schResults" class="results" hidden></div></div></div>
+            <p class="or">或依序選擇</p>
+            <div class="field"><label for="schCounty">縣市</label><select id="schCounty" disabled></select></div>
+            <div class="field"><label for="schDist">區域</label><select id="schDist" disabled></select></div>
+            <div class="field"><label for="schName">學校</label><select id="schName" disabled></select></div>
+          </div>
+          <div class="field"><label for="assetNo">樂器編號（選填）</label><input id="assetNo" type="text" placeholder="例：FL-012 或學校財產編號"></div>
+        </section>
+
+        <section class="card s-inst">
+          <h2>選擇樂器</h2>
+          <div class="field"><label for="selCat"><span class="step">1</span>分類</label><select id="selCat"></select></div>
+          <div class="field"><label for="selFam"><span class="step">2</span>類別</label><select id="selFam" disabled></select></div>
+          <div class="field"><label for="selInst"><span class="step">3</span>樂器</label><select id="selInst" disabled></select></div>
+          <div id="modelBox" class="sub" hidden>
+            <p class="eyebrow">樂器型號</p>
+            <div class="field"><label for="selBrand"><span class="step">4</span>廠牌</label><select id="selBrand"></select></div>
+            <div class="field"><label for="selGrade"><span class="step">5</span>等級</label><select id="selGrade" disabled></select></div>
+            <div class="field"><label for="selModel"><span class="step">6</span>型號</label><select id="selModel" disabled></select></div>
+            <div class="field" id="manualBox" hidden><label for="manualModel">手動輸入型號</label><input id="manualModel" type="text" placeholder="找不到型號時在這裡輸入，例：Yamaha YFL-211"></div>
+            <div id="cfgBox" class="cfg-box" hidden><p class="eyebrow">樂器配置</p><p class="hint" id="cfgHint"></p><div id="cfgFields" class="cfg"></div></div>
+          </div>
+        </section>
+
+        <section class="card s-svc">
+          <div class="sec-head"><h2>此次維護項目</h2><span class="pill" id="svcCount">可複選</span></div>
+          <div class="svc" id="svc" role="group" aria-label="此次維護項目"></div>
+        </section>
+
+        <section class="card s-diagram">
+          <div class="sec-head"><h2 id="diaTitle">維修部位</h2><span id="repCount" class="pill">0 處</span></div>
+          <div id="diagram"><div class="diagram-empty">選好樂器後，這裡會出現零件圖。<br>點圖上的零件，就能選擇維修原因和方式。</div></div>
+          <div id="diaExtra" hidden>
+            <div class="legend"><span><i></i>未維修</span><span><i class="r"></i>已標記維修</span></div>
+            <details class="plist" id="plist"><summary>零件清單（按鍵太小時從這裡點）</summary><div id="partChips" class="parts-list"></div></details>
+          </div>
+          <div id="summary" class="summary"></div>
+        </section>
+
+        <section class="card s-photos">
+          <div class="sec-head"><h2>照片</h2><span id="photoCount" class="pill mono">0 / 6</span></div>
+          <div id="photos" class="photos"></div>
+        </section>
+
+        <section class="card s-notes">
+          <div class="field"><label for="notes">備註</label><textarea id="notes" rows="3" placeholder="例：下次保養請一併檢查 G♯ 鍵彈簧"></textarea></div>
+        </section>
+
+        <div class="save-row"><p id="formMsg" role="status"></p><button class="btn-primary" id="saveBtn" type="submit">儲存紀錄</button></div>
+      </form>
+    </section>
+
+    <!-- Records -->
+        <section id="view-list" hidden>
+      <div class="stats-head">
+        <div><p class="eyebrow">統計與紀錄</p><h2 id="statTitle">2026 年維修統計</h2></div>
+        <div class="stats-ctrl">
+          <label class="sr" for="statYear">年份</label><select id="statYear"></select>
+          <label class="chk"><input type="checkbox" id="showSample"> 顯示示範資料</label>
+          <button type="button" class="btn-primary sm" id="openReport">產出月報</button>
+        </div>
+      </div>
+      <div class="kpis" id="kpis"></div>
+      <div class="viz-grid">
+        <figure class="viz">
+          <figcaption><b>每月維修量</b><span>花瓣長度＝件數，依類別堆疊。點花瓣篩選月份。</span></figcaption>
+          <div class="rose-wrap"><svg id="rose" viewBox="0 0 340 340" role="img" aria-label="每月維修量花瓣圖"></svg></div>
+          <div class="legend fam-legend"><span><i class="f-ww"></i>木管</span><span><i class="f-br"></i>銅管</span><span><i class="f-pc"></i>打擊</span></div>
+        </figure>
+        <figure class="viz">
+          <figcaption><b>樂器 × 月份</b><span>圓點大小＝件數。點樂器名稱看廠牌與型號。</span></figcaption>
+          <div class="matrix-wrap"><svg id="matrix" role="img" aria-label="各樂器每月維修件數"></svg></div>
+        </figure>
+      </div>
+      <section id="drill" class="drill" hidden aria-live="polite">
+        <div class="sec-head"><div><p class="eyebrow" id="drillEyebrow"></p><h3 id="drillTitle"></h3></div><button class="x" id="drillX" type="button" aria-label="關閉">×</button></div>
+        <div class="tree" id="tree"></div>
+        <table class="mtable" id="drillTable"></table>
+      </section>
+      <div class="list-ctrl">
+        <h3>維修清單</h3>
+        <div class="seg" role="group" aria-label="清單分組"><button type="button" data-g="inst" aria-pressed="true">依樂器</button><button type="button" data-g="month" aria-pressed="false">依月份</button></div>
+        <button type="button" class="pill filter" id="monthChip" hidden></button>
+      </div>
+      <div id="records" class="groups"></div>
+    </section>
+  </main>
+
+  <!-- Monthly report -->
+  <section id="report" class="report" hidden aria-labelledby="repTitle">
+    <div class="rep-bar">
+      <h2 id="repTitle">月報</h2>
+      <div class="rep-ctrl">
+        <div class="field"><label for="repMonth">月份</label><select id="repMonth"></select></div>
+        <div class="field"><label for="repType">報告類型</label>
+          <select id="repType"><option value="summary">摘要文字（基本資料＋維修概況）</option><option value="detail">詳細文字（完整維修內容）</option><option value="photo">完整報告（含樂器圖與照片）</option></select></div>
+        <fieldset class="mask"><legend>遮蔽個資</legend>
+          <label class="chk"><input type="checkbox" id="mCust" checked> 客戶名稱／學校</label>
+          <label class="chk"><input type="checkbox" id="mStaff"> 維修人員</label>
+          <label class="chk"><input type="checkbox" id="mAsset"> 樂器編號</label>
+        </fieldset>
+      </div>
+      <div class="rep-actions">
+        <button type="button" class="btn-ghost" id="repCopy">複製文字</button>
+        <button type="button" class="btn-ghost" id="repDl">下載文字檔</button>
+        <button type="button" class="btn-ghost" id="repPrint">列印／存成 PDF</button>
+        <button type="button" class="btn-primary sm" id="repClose">關閉</button>
+      </div>
+      
+    </div>
+    <div class="rep-body" id="repBody"></div>
+  </section>
+
+  <section id="recView" class="report" hidden aria-labelledby="rvTitle">
+    <div class="rep-bar rv-bar">
+      <div><p class="eyebrow" id="rvEyebrow"></p><h2 id="rvTitle">維修紀錄</h2></div>
+      <button type="button" class="btn-primary sm" id="rvClose">關閉</button>
+    </div>
+    <div class="rep-body" id="rvBody"></div>
+  </section>
+  <div id="lightbox" class="lightbox" role="dialog" aria-modal="true" aria-label="照片" hidden>
+    <button type="button" class="lb-close" id="lbClose">關閉 ×</button>
+    <button type="button" class="lb-nav prev" id="lbPrev" aria-label="上一張">‹</button>
+    <figure><img id="lbImg" alt=""><figcaption id="lbCap"></figcaption></figure>
+    <button type="button" class="lb-nav next" id="lbNext" aria-label="下一張">›</button>
+  </div>
+  <div id="tip" class="tip" role="tooltip" hidden></div>
+  <div id="reauth" class="reauth" role="alertdialog" aria-labelledby="reauthT" hidden><p id="reauthT">Google 連線已逾時，請點一下繼續（資料不會遺失）。</p><button type="button" class="btn-primary sm" id="reauthBtn">重新連線</button></div>
+
+
+  <!-- Repair sheet -->
+  <div id="backdrop" class="backdrop" hidden></div>
+  <section id="sheet" class="sheet" role="dialog" aria-modal="true" aria-labelledby="sheetTitle" hidden>
+    <div class="sheet-head">
+      <div><p class="eyebrow" id="sheetEyebrow"></p><h2 id="sheetTitle"></h2></div>
+      <button class="x" id="sheetX" type="button" aria-label="關閉">×</button>
+    </div>
+    <div class="sheet-body" id="sheetBody"></div>
+    <div class="sheet-foot">
+      <button class="btn-ghost warn" id="sheetClear" type="button">清除此部位</button>
+      <button class="btn-primary" id="sheetOk" type="button">完成</button>
+    </div>
+  </section>
+
+  <!-- Version modal -->
+  <section id="verModal" class="modal" role="dialog" aria-modal="true" aria-labelledby="verTitle" hidden>
+    <div class="sec-head"><h2 id="verTitle" style="font-family:var(--f-display);font-size:20px">改版紀錄</h2><button class="x" id="verX" type="button" aria-label="關閉">×</button></div>
+    <div class="vlog" id="vlog"></div>
+  </section>
+
+  <div id="toast" class="toast" role="status" hidden></div>
+</div>
+
+<script>
+/* ================= Config ================= */
+// 授權帳號以 SHA-256 雜湊保存（網站公開，不放明文 Email）。新增帳號：python tools/hash_email.py 帳號
+const ALLOWED_SHA256 = ['09d623d9b99edd0c73ac66e5d8b5490e79cc73eafd8cccf97f61a06aa1b11f2e','a31bd345f38869ac87bed5321da1de08cc88aa5267aca52a57bf7bd461b2dffd'];
+async function isAllowed(email){
+ try{const d=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(String(email).trim().toLowerCase()));
+  return ALLOWED_SHA256.includes([...new Uint8Array(d)].map(b=>b.toString(16).padStart(2,'0')).join(''))}catch(e){return false}
+}
+const VERSIONS = [
+  {v:'V7', date:'2026-10-09', items:[
+    '正式版上線：Google 帳號登入，只有授權帳號能使用',
+    '紀錄與照片存到登入者自己的 Google Drive「樂器維護紀錄」資料夾',
+    '照片上傳前自動壓縮（長邊 1600px）',
+    '可加到手機主畫面，全螢幕使用；月報可下載文字檔、列印或存成 PDF',
+    '示範資料預設關閉，可在統計頁開啟'
+  ]},
+  {v:'V6', date:'2026-10-09', items:[
+    '新增「此次維護項目」：清洗保養擦拭、調整墊片、維修零件、更換零件（可複選），放在維修部位之前',
+    '維護項目會顯示在清單、紀錄頁與所有月報中',
+    '所有紀錄頁與月報不再顯示產出日期'
+  ]},
+  {v:'V5', date:'2026-10-09', items:[
+    '維修清單的每筆紀錄都能點開，版面與完整月報相同（基本資料＋樂器圖／照片表）',
+    '照片可點開放大，有關閉按鈕，可左右切換；範例紀錄附示意照片'
+  ]},
+  {v:'V4', date:'2026-10-09', items:[
+    '歷史紀錄改為統計頁：月份花瓣圖、樂器 × 月份圓點矩陣、全年重點數字',
+    '點樂器可展開廠牌／型號方塊圖與件數表；點月份花瓣可篩選該月',
+    '維修清單可依樂器或依月份分組',
+    '月報：摘要文字、詳細文字、含樂器圖與照片的完整報告（A4 外框頁面，每件樂器兩頁）',
+    '報告可遮蔽客戶名稱／學校、維修人員、樂器編號；維修位置在圖上以亮色與編號標示',
+    '附 2025–2026 範例資料，可關閉'
+  ]},
+  {v:'V3', date:'2026-10-09', items:[
+    '新增「樂器配置」：選型號後自動帶入出廠配置，可依實際樂器修改（例如自行更換尾管）',
+    '長笛：可選 C／B 尾管、開孔／閉孔、偏置／直列 G、E 分離機構、C♯ 顫音鍵、尾管滾輪',
+    '長笛尾管按鍵依實際位置重畫：D♯ 鍵、D♯／C♯／C／B 觸鍵與滾輪、C♯／C／B 墊片杯、Gizmo 鍵',
+    'Yamaha 長笛型號依官方規格表更正（212、222、262、272、282、3xx、4xx 系列）',
+    '其他樂器配置：單簧管低音 E♭、雙簧管系統與八度鍵、低音管高音鍵、薩克斯風高音 F♯／前置 F、小號扳機、法國號管系與連動、長號 F 轉閥、低音號閥數與形式、定音鼓尺寸與鍋身等'
+  ]},
+  {v:'V2', date:'2026-10-09', items:[
+    '維修人員自動帶入 Google 名字，顯示在基本資料右上角',
+    '新增「客戶」：團體、個人輸入名稱；學校依學制 → 縣市 → 區域 → 學校選擇，也能用關鍵字搜尋',
+    '學校名單：台北、新北、基隆、桃園、新竹縣市、宜蘭共 1,327 所（教育部學校名錄）',
+    '新增「樂器型號」：廠牌 → 等級 → 型號，找不到可手動輸入',
+    '樂器圖會依型號調整外觀（例：長笛開孔／B 尾管、長號 F 轉閥、法國號單管／雙管）',
+    '版面順序改為：基本資料 → 選擇樂器 → 樂器圖 → 照片'
+  ]},
+  {v:'V1', date:'2026-10-09', items:[
+    '使用 Google 帳號登入，只有授權帳號能使用（樣板為模擬登入）',
+    '日期預設為今天，可點選更改，並顯示星期',
+    '分類 → 類別 → 樂器，三層連動選單',
+    '19 種樂器的互動零件圖：點零件選維修原因與方式，已維修的部位會標紅',
+    '每個按鍵都能單獨點選，另有零件清單方便手機點選',
+    '每筆紀錄最多 6 張照片，每張可加說明',
+    '歷史紀錄列表（樣板暫存在瀏覽器，正式版存到 Google Drive）'
+  ]}
+];
+const WEEK = ['日','一','二','三','四','五','六'];
+const SERVICES = ['清洗保養擦拭','調整墊片','維修零件','更換零件'];
+
+/* ================= Repair catalogue (by part kind) ================= */
+const REPAIRS = {
+ 'ww-key':[
+  {n:'墊片',r:['破損','老化硬化','漏氣／閉合不良','黏鍵','發霉'],m:['更換墊片','墊片整平／調整','清潔墊片']},
+  {n:'彈簧',r:['斷裂','彈力不足','脫鉤'],m:['更換彈簧','調整彈力','重新掛簧']},
+  {n:'緩衝軟木／毛氈',r:['脫落','磨損','厚度不當有異音'],m:['更換軟木／毛氈','調整厚度']},
+  {n:'鍵軸／鍵桿',r:['鬆動有異音','卡鍵／回彈慢','彎曲變形'],m:['清潔上油','校正鍵桿','鎖緊或更換螺絲']}],
+ 'ww-body':[
+  {n:'管身',r:['凹痕','彎曲','撞擊變形'],m:['整凹','管身校直']},
+  {n:'鍵柱／焊點',r:['脫焊','鬆動'],m:['重新焊接','固定鍵柱']},
+  {n:'表面',r:['氧化變色','鍍層／漆面剝落'],m:['清潔拋光','重新電鍍／上漆']}],
+ 'ww-body-wood':[
+  {n:'管身',r:['裂痕','乾裂','音孔積垢'],m:['裂痕打釘／填補','管身上油保養','清潔音孔']},
+  {n:'鍵柱',r:['鬆動','脫落'],m:['重新固定鍵柱','更換鍵柱']},
+  {n:'金屬環',r:['鬆脫','變形'],m:['重新固定','更換金屬環']}],
+ 'ww-tenon-metal':[{n:'接管',r:['太緊／卡住','太鬆晃動','凹痕'],m:['清潔拋光','接管擴／縮調整','整凹']}],
+ 'ww-tenon-cork':[{n:'接榫軟木',r:['破損','太鬆','太緊','老化'],m:['更換接榫軟木','塗抹軟木膏','研磨調整']}],
+ 'fl-crown':[{n:'頭冠',r:['鬆脫','刮傷','遺失'],m:['鎖緊','更換頭冠']}],
+ 'fl-cork':[{n:'軟木塞',r:['破碎','老化乾裂','位置偏移','漏氣'],m:['更換軟木塞','校正位置（清潔棒刻度）']}],
+ 'fl-lip':[{n:'唇口板',r:['凹痕／刮傷','脫焊','吹口邊緣損傷'],m:['整形','重新焊接','吹口邊緣修整']}],
+ 'reed-mouth':[
+  {n:'吹嘴',r:['缺角破損','尖端磨損','髒污'],m:['更換吹嘴','清潔消毒']},
+  {n:'吹嘴接合軟木',r:['破損','太鬆'],m:['更換軟木','纏軟木膠帶']}],
+ 'cl-lig':[{n:'束圈',r:['變形','螺絲滑牙','遺失'],m:['整形','更換螺絲','更換束圈']}],
+ 'ob-reed':[{n:'簧片',r:['裂開','磨損','開口過大／過小','線圈鬆脫'],m:['更換簧片','調整開口','重新纏線']}],
+ 'sax-neck':[
+  {n:'脖子',r:['凹痕','彎曲／角度跑掉','與管身接合鬆動'],m:['整凹','校正角度','調整接合／固定螺絲']},
+  {n:'脖子軟木',r:['破損','太鬆'],m:['更換脖子軟木']}],
+ 'ww-bell-wood':[{n:'喇叭口',r:['裂痕','金屬環鬆脫'],m:['裂痕修補','固定／更換金屬環']}],
+ 'ww-bell-metal':[{n:'喇叭口',r:['凹痕','變形','脫焊'],m:['整凹','整形','重新焊接']}],
+ 'ww-thumb':[{n:'托指',r:['鬆脫','損壞','不舒適'],m:['鎖緊','更換托指','加裝托指套']}],
+ 'ww-ring':[{n:'吊環',r:['鬆脫','脫焊'],m:['固定','重新焊接']}],
+ 'bn-bocal':[
+  {n:'S 管',r:['凹痕','阻塞','彎曲'],m:['整凹','清潔','校正']},
+  {n:'S 管軟木',r:['破損','太鬆'],m:['更換軟木']}],
+ 'bn-boot-cap':[{n:'U 型管／底蓋',r:['漏氣','腐蝕','螺絲鬆動'],m:['更換墊圈','清潔防鏽','鎖緊']}],
+ 'sax-guard':[{n:'護鍵罩',r:['凹陷變形','脫焊','壓到按鍵'],m:['整形','重新焊接']}],
+ 'br-mouthpiece':[{n:'吹嘴',r:['卡在吹嘴管拔不出','鍍層磨損','邊緣凹痕'],m:['用拔吹嘴器取出','重新電鍍','整形']}],
+ 'br-leadpipe':[{n:'吹嘴管',r:['凹痕','內部積垢／腐蝕','脫焊'],m:['整凹','化學清洗','重新焊接']}],
+ 'br-valve':[
+  {n:'活塞本體',r:['卡鍵／阻滯','磨損漏氣','刮傷'],m:['清潔上油','活塞研磨','活塞重鍍']},
+  {n:'活塞彈簧',r:['斷裂','彈力不足'],m:['更換彈簧']},
+  {n:'毛氈／緩衝墊',r:['磨損','遺失','對位不準'],m:['更換毛氈／緩衝墊','校正對位']},
+  {n:'按鈕／頂蓋／底蓋',r:['鬆動','遺失','滑牙／卡死'],m:['更換按鈕／蓋子','修整螺牙','拆卸潤滑']}],
+ 'br-rotor':[
+  {n:'轉閥',r:['卡住／轉動不順','漏氣','異音'],m:['清潔上油','轉閥校正','轉閥大修']},
+  {n:'轉閥拉線／連桿',r:['斷線','鬆脫','行程不對'],m:['更換拉線','調整行程']}],
+ 'br-lever':[
+  {n:'按鍵',r:['彈簧斷','按鍵鬆動','緩衝墊磨損'],m:['更換彈簧','固定按鍵','更換緩衝墊']},
+  {n:'拉線',r:['斷線','鬆脫'],m:['更換拉線','重新綁線']}],
+ 'br-slide':[{n:'調音管',r:['卡死拉不動','凹痕','脫焊','漏氣'],m:['拆卸清潔潤滑','整凹','重新焊接']}],
+ 'br-waterkey':[{n:'水鍵',r:['軟木漏氣','彈簧斷','鬆動'],m:['更換軟木','更換彈簧','固定']}],
+ 'br-bell':[
+  {n:'喇叭口',r:['凹痕','變形','裂痕'],m:['整凹','整形','焊補']},
+  {n:'表面',r:['氧化變色','漆面剝落'],m:['清潔拋光','重新上漆／電鍍']}],
+ 'br-tube':[
+  {n:'管身',r:['凹痕','彎曲'],m:['整凹','校正']},
+  {n:'支柱／焊點',r:['脫焊','斷裂'],m:['重新焊接','更換支柱']}],
+ 'br-ring':[{n:'指環／指鉤',r:['鬆脫','脫焊','變形'],m:['固定','重新焊接','整形']}],
+ 'tb-inner':[
+  {n:'內滑管',r:['滑動不順／卡滑','彎曲','凹痕','鍍層磨損'],m:['清潔潤滑','滑管校直','整凹','滑管重鍍']},
+  {n:'止點軟木／彈簧',r:['老化','遺失'],m:['更換止點軟木／彈簧']}],
+ 'tb-outer':[{n:'外滑管',r:['滑動不順／卡滑','彎曲','凹痕'],m:['清潔潤滑','滑管校直','整凹']}],
+ 'tb-bow':[
+  {n:'滑管彎管',r:['凹痕','脫焊'],m:['整凹','重新焊接']},
+  {n:'防撞套',r:['破損','遺失'],m:['更換防撞套']}],
+ 'tb-lock':[{n:'滑管鎖',r:['鎖不住','鬆脫','卡住'],m:['調整滑管鎖','更換滑管鎖']}],
+ 'tb-brace':[{n:'橫撐',r:['脫焊','鬆動','歪斜'],m:['重新焊接','固定','校正']}],
+ 'pc-head':[{n:'鼓皮',r:['破裂','鬆弛／音色不佳','磨損凹陷'],m:['更換鼓皮','重新調音']}],
+ 'pc-shell':[{n:'鼓身',r:['裂痕','凹痕','包膜／漆面剝落'],m:['修補裂痕','整形','重新貼皮／上漆']}],
+ 'pc-hoop':[{n:'鼓框',r:['變形','裂痕','刮傷'],m:['整形','更換鼓框']}],
+ 'pc-lug':[
+  {n:'調音螺絲',r:['滑牙','遺失','生鏽卡死'],m:['更換螺絲','上油']},
+  {n:'耳朵',r:['鬆動有異音','破裂'],m:['鎖緊／加墊片','更換耳朵']}],
+ 'pc-strainer':[{n:'響弦開關',r:['無法鎖定','調整鈕滑牙','鬆動'],m:['更換開關','更換調整鈕','鎖緊']}],
+ 'pc-snares':[{n:'響弦',r:['斷裂','鬆弛／不平均','掛繩斷'],m:['更換響弦','調整張力','更換掛繩／掛帶']}],
+ 'pc-stand':[{n:'腳架／支架',r:['搖晃','零件遺失','螺絲滑牙','輪子損壞'],m:['鎖緊','更換零件','更換輪子']}],
+ 'pc-pedal':[{n:'踏板',r:['音高固定不住／滑動','彈簧張力不對','異音'],m:['調整彈簧張力','更換離合零件','上油']}],
+ 'pc-fine':[{n:'微調器',r:['卡住','失效'],m:['上油','更換微調器']}],
+ 'pc-gauge':[{n:'音高指示器',r:['指示不準','鬆脫','損壞'],m:['校正','固定','更換']}],
+ 'pc-bar':[{n:'音板',r:['裂痕','走音','掉落／鬆脫','表面磨損'],m:['更換音板','重新調音','重新固定']}],
+ 'pc-cord':[{n:'吊繩／固定柱',r:['斷裂','磨損','膠套脫落'],m:['更換吊繩','更換固定柱膠套']}],
+ 'pc-resonator':[{n:'共鳴管',r:['凹痕','鬆脫','異音'],m:['整凹','固定','加裝緩衝']}],
+ 'pc-case':[{n:'琴盒／外框',r:['鉸鏈損壞','把手斷裂','外殼破損'],m:['更換鉸鏈','更換把手','修補外殼']}],
+ 'pc-cymbal':[{n:'鈸面',r:['裂痕','變形','氧化發黑'],m:['止裂鑽孔／切除裂痕','更換鈸','清潔拋光']}],
+ 'pc-strap':[{n:'鈸帶／把手',r:['斷裂','磨損','鬆脫'],m:['更換鈸帶','重新綁結']}],
+ 'fl-roller':[{n:'滾輪',r:['卡住不轉','鬆脫','磨損'],m:['清潔上油','更換滾輪','鎖緊']}],
+ 'br-linkage':[{n:'機械連桿',r:['鬆動','球接頭磨損有異音','彎曲'],m:['調整','更換球接頭','校正']}],
+ 'br-bellring':[{n:'喇叭口螺環',r:['卡死拆不下','滑牙','鬆動'],m:['清潔潤滑','修整螺牙','更換螺環']}],
+ generic:[{n:'零件',r:['損壞','鬆脫','遺失'],m:['修理','更換']}]
+};
+
+/* ================= Instrument drawings =================
+   每個樂器圖由「配置 c」決定外觀；c 的值來自型號預設，使用者可在「樂器配置」修改。 */
+const R=(x,y,w,h,rx=3)=>({t:'rect',x,y,w,h,rx});
+const C=(cx,cy,r)=>({t:'circle',cx,cy,r});
+const E=(cx,cy,rx,ry)=>({t:'ellipse',cx,cy,rx,ry});
+const P=d=>({t:'path',d});
+const T=(d,w)=>({t:'tube',d,w});
+const part=(id,label,kind,shapes,tag)=>({id,label,kind,shapes:[].concat(shapes),tag});
+const K=(id,label,cx,cy,r,tag)=>part(id,label,'ww-key',C(cx,cy,r),tag);
+const yes=v=>v==='yes';
+
+function flute(c){
+ const B=c.foot==='B', footLen=B?160:124, w=532+footLen+24;
+ const gy=c.g==='inline'?71:82;                       // offset G sits toward the player
+ const open=c.holes==='open';
+ // Open-hole (French) flutes: L1, L2, L3, R1, R2 are ring keys; R3 (D) stays covered.
+ const holes=open?[[252,71],[280,71],[308,gy],[382,71],[410,71]].map(([x,y])=>C(x,y,3.5)):[];
+ const parts=[
+  part('fl_head','頭管管身','ww-body',R(28,60,182,22,4)),
+  part('fl_crown','頭冠','fl-crown',R(12,57,18,28,5)),
+  part('fl_cork','頭管軟木塞','fl-cork',R(34,63,16,16,2),'塞'),
+  part('fl_lip','唇口板','fl-lip',E(100,71,24,15),'唇口'),
+  part('fl_ten1','接榫（頭管／主管）','ww-tenon-metal',R(210,58,14,26,2)),
+  part('fl_body','主管管身','ww-body',R(224,60,296,22,4)),
+  part('fl_ten2','接榫（主管／尾管）','ww-tenon-metal',R(520,58,12,26,2)),
+  part('fl_foot',B?'尾管管身（B 尾管）':'尾管管身（C 尾管）','ww-body',R(532,60,footLen,22,4)),
+  K('fl_kC','C 鍵（左手 1）',252,71,10,'L1'),
+  K('fl_kA','A 鍵（左手 2）',280,71,10,'A'),
+  K('fl_kG',c.g==='inline'?'G 鍵（左手 3，直列）':'G 鍵（左手 3，偏置）',308,gy,10,'G'),
+  K('fl_kGs','G♯ 鍵（左小指）',334,71,7,'G♯'),
+  K('fl_kTh','拇指 B／B♭ 鍵',262,100,9,'拇'),
+  K('fl_kBb','B♭ 側鍵（右手）',356,98,7,'B♭'),
+  K('fl_kF','F 鍵（右手 1）',382,71,10,'F'),
+  K('fl_kE','E 鍵（右手 2）',410,71,10,'E'),
+  K('fl_kD','D 鍵（右手 3）',438,71,10,'D'),
+  K('fl_tr1','D 顫音鍵',462,46,7,'t1'),
+  K('fl_tr2','D♯ 顫音鍵',484,46,7,'t2'),
+  // Foot joint: D♯ pad near the tenon, pinky touches (with rollers) below, open pad cups toward the end.
+  K('fl_kDs','D♯ 鍵（墊片）',552,71,8,'D♯'),
+  part('fl_tDs','D♯ 觸鍵（右小指）','ww-key',R(542,90,14,16,4),'D♯'),
+  part('fl_tCs','C♯ 觸鍵','ww-key',R(558,90,14,16,4),'C♯'),
+  part('fl_tC','C 觸鍵','ww-key',R(574,90,14,16,4),'C'),
+  part('fl_rC','C 滾輪','fl-roller',R(575,108,12,6,2)),
+  K('fl_kCs','C♯ 鍵（墊片）',606,71,10,'C♯'),
+  K('fl_kC1','C 鍵（墊片）',632,71,10,'C')
+ ];
+ if(yes(c.splitE))parts.push(part('fl_splitE','E 分離機構','ww-key',R(396,88,32,8,3)));
+ if(yes(c.csTrill))parts.push(K('fl_csTr','C♯ 顫音鍵',232,46,6,'C♯t'));
+ if(c.roller==='ds'||c.roller==='csds')parts.push(part('fl_rDs','D♯ 滾輪','fl-roller',R(543,108,12,6,2)));
+ if(c.roller==='csds')parts.push(part('fl_rCs','C♯ 滾輪','fl-roller',R(559,108,12,6,2)));
+ if(B)parts.push(
+  part('fl_tB','B 觸鍵','ww-key',R(590,90,14,16,4),'B'),
+  part('fl_rB','B 滾輪','fl-roller',R(591,108,12,6,2)),
+  K('fl_kB','B 鍵（墊片）',658,71,10,'B'),
+  part('fl_giz','Gizmo 鍵（高音 C 輔助）','ww-key',R(672,40,8,18,3)));
+ return{id:'flute',name:'長笛',vb:[w,130],holes,parts};
+}
+function piccolo(c){
+ const bodyKind=c.body==='metal'?'ww-body':'ww-body-wood';
+ const mat={wood:'木製',resin:'樹脂',metal:'金屬'}[c.body]||'';
+ const parts=[
+  part('pc_head','頭管管身','ww-body',R(28,60,142,22,4)),
+  part('pc_crown','頭冠','fl-crown',R(12,57,18,28,5)),
+  part('pc_cork','頭管軟木塞','fl-cork',R(34,63,16,16,2),'塞'),
+  part('pc_lip','唇口板','fl-lip',E(92,71,20,13),'唇口'),
+  part('pc_ten','接榫（頭管／主管）','ww-tenon-metal',R(170,58,12,26,2)),
+  part('pc_body',`主管管身（${mat}）`,bodyKind,R(182,60,362,22,4)),
+  K('pc_kC','C 鍵（左手 1）',216,71,9,'L1'),
+  K('pc_kA','A 鍵（左手 2）',242,71,9,'A'),
+  K('pc_kG','G 鍵（左手 3）',268,71,9,'G'),
+  K('pc_kGs','G♯ 鍵（左小指）',292,71,6,'G♯'),
+  K('pc_kTh','拇指 B／B♭ 鍵',226,100,8,'拇'),
+  K('pc_kBb','B♭ 側鍵（右手）',316,98,6,'B♭'),
+  K('pc_kF','F 鍵（右手 1）',338,71,9,'F'),
+  K('pc_kE','E 鍵（右手 2）',364,71,9,'E'),
+  K('pc_kD','D 鍵（右手 3）',390,71,9,'D'),
+  K('pc_tr1','D 顫音鍵',430,46,6,'t1'),
+  K('pc_tr2','D♯ 顫音鍵',450,46,6,'t2'),
+  K('pc_kDs','D♯ 鍵（右小指）',500,71,7,'D♯')
+ ];
+ if(yes(c.splitE))parts.push(part('pc_splitE','E 分離機構','ww-key',R(352,88,30,8,3)));
+ return{id:'piccolo',name:'短笛',vb:[560,130],parts};
+}
+function clarinet(c){
+ const parts=[
+  part('cl_mp','吹嘴','reed-mouth',P('M12 62 L62 60 L62 80 L12 78 Z')),
+  part('cl_lig','束圈','cl-lig',R(30,56,18,28,3)),
+  part('cl_t1','接榫軟木（吹嘴／小筒）','ww-tenon-cork',R(62,59,8,22,2)),
+  part('cl_bar','小筒','ww-body-wood',R(70,55,42,30,6)),
+  part('cl_t2','接榫軟木（小筒／上管）','ww-tenon-cork',R(112,58,8,24,2)),
+  part('cl_up','上管管身','ww-body-wood',R(120,58,236,24,4)),
+  part('cl_t3','中榫軟木（上管／下管）','ww-tenon-cork',R(356,57,10,26,2)),
+  part('cl_lo','下管管身','ww-body-wood',R(366,58,220,24,4)),
+  part('cl_t4','接榫軟木（下管／喇叭口）','ww-tenon-cork',R(586,57,8,26,2)),
+  part('cl_bell','喇叭口','ww-bell-wood',P('M594 58 L628 57 Q656 54 670 36 L670 104 Q656 86 628 83 L594 82 Z')),
+  K('cl_A','A 鍵',140,44,7,'A'),
+  K('cl_Gs','G♯ 鍵',160,44,7,'G♯'),
+  part('cl_tr','顫音側鍵（4 鍵）','ww-key',R(268,38,62,10,4),'顫音'),
+  K('cl_L1','左手 1 指環',180,70,9,'L1'),
+  K('cl_L2','左手 2 指環',212,70,9,'L2'),
+  K('cl_L3','左手 3 指環',244,70,9,'L3'),
+  K('cl_th','拇指孔／指環',162,98,8,'拇'),
+  K('cl_reg','八度鍵（Register）',186,104,6,'八'),
+  part('cl_lp','左小指鍵群','ww-key',R(312,92,38,12,4),'左小指'),
+  part('cl_sk','右側鍵（E♭／B♭）','ww-key',R(392,38,46,10,4),'側鍵'),
+  K('cl_R1','右手 1 指環',420,70,9,'R1'),
+  K('cl_R2','右手 2 指環',452,70,9,'R2'),
+  K('cl_R3','右手 3 指環',484,70,9,'R3'),
+  part('cl_rp','右小指鍵群','ww-key',R(518,92,40,12,4),'右小指'),
+  part('cl_thr','托指','ww-thumb',R(382,92,18,12,3),'托')
+ ];
+ if(yes(c.lowEb))parts.push(K('cl_lEb','低音 E♭ 撥桿',566,44,7,'E♭'));
+ if(yes(c.auxAb))parts.push(part('cl_aux','左手 A♭／E♭ 輔助鍵','ww-key',R(290,94,18,10,3)));
+ return{id:'clarinet',name:'單簧管（豎笛）',vb:[680,130],parts};
+}
+function oboe(c){
+ const full=c.sys==='full', oct=c.oct==='full'?'全自動':'半自動';
+ const parts=[
+  part('ob_reed','簧片','ob-reed',P('M10 66 L44 68 L44 72 L10 74 Z')),
+  part('ob_up','上管管身','ww-body-wood',P('M44 62 L300 59 L300 81 L44 78 Z')),
+  part('ob_t1','中榫軟木','ww-tenon-cork',R(300,57,10,26,2)),
+  part('ob_lo','下管管身','ww-body-wood',P('M310 58 L540 56 L540 84 L310 82 Z')),
+  part('ob_t2','下榫軟木','ww-tenon-cork',R(540,54,10,32,2)),
+  part('ob_bell','喇叭口','ww-bell-wood',P('M550 56 L590 54 Q616 51 630 37 L630 103 Q616 89 590 86 L550 84 Z')),
+  K('ob_o1',`第一八度鍵（${oct}）`,84,46,6,'8¹'),
+  K('ob_o2',`第二八度鍵（${oct}）`,104,46,6,'8²'),
+  part('ob_tr','顫音鍵群','ww-key',R(232,38,54,9,4),'顫音'),
+  K('ob_L1','左手 1（半孔鍵）',140,70,8,'L1'),
+  K('ob_L2','左手 2',172,70,8,'L2'),
+  K('ob_L3','左手 3',204,70,8,'L3'),
+  part('ob_lp','左小指鍵群','ww-key',R(236,92,42,12,4),'左小指'),
+  K('ob_R1','右手 1',360,70,8,'R1'),
+  K('ob_R2','右手 2',394,70,8,'R2'),
+  K('ob_R3','右手 3',428,70,8,'R3'),
+  part('ob_rp','右小指鍵群','ww-key',R(452,92,50,12,4),'右小指'),
+  part('ob_thr','托指','ww-thumb',R(318,94,18,12,3),'托')
+ ];
+ if(yes(c.oct3))parts.push(K('ob_o3','第三八度鍵',124,46,6,'8³'));
+ if(full)parts.push(K('ob_lF','左手 F 鍵',222,98,6,'F'),K('ob_bk','低音 B♭ 鍵（喇叭口）',576,70,7,'B♭'));
+ return{id:'oboe',name:'雙簧管',vb:[640,130],parts};
+}
+function bassoon(c){
+ const parts=[
+  part('bn_boot','靴管（雙管）','ww-body-wood',R(40,96,100,66,10)),
+  part('bn_cap','U 型管／底蓋','bn-boot-cap',R(44,162,92,12,4)),
+  part('bn_wing','翼管','ww-body-wood',R(140,98,220,22,4)),
+  part('bn_long','長管','ww-body-wood',R(140,136,330,24,4)),
+  part('bn_bell','喇叭管','ww-bell-wood',R(470,134,150,28,6)),
+  part('bn_bocal','S 管','bn-bocal',T('M360 109 Q400 109 420 86 Q440 60 480 58',7)),
+  K('bn_wh','耳語鍵（左拇指）',330,88,6,'耳'),
+  K('bn_L1','左手 1（半孔）',302,109,7,'L1'),
+  K('bn_L2','左手 2',276,109,7,'L2'),
+  K('bn_L3','左手 3',250,109,7,'L3'),
+  part('bn_lth','左拇指低音鍵群','ww-key',R(330,164,110,10,4),'左拇指'),
+  K('bn_R1','右手 1',118,112,6,'R1'),
+  K('bn_R2','右手 2',98,112,6,'R2'),
+  K('bn_R3','右手 3',78,112,6,'R3'),
+  part('bn_rth','右拇指鍵群','ww-key',R(50,138,40,10,3),'右拇'),
+  part('bn_pk','小指鍵群','ww-key',R(94,138,40,10,3),'小指')
+ ];
+ if(yes(c.wlock))parts.push(part('bn_wl','耳語鍵鎖','ww-key',R(308,82,12,8,2)));
+ if(yes(c.hiD))parts.push(K('bn_hD','高音 D 鍵',346,88,6,'D'));
+ if(yes(c.hiE))parts.push(K('bn_hE','高音 E 鍵',362,88,6,'E'));
+ return{id:'bassoon',name:'低音管（巴松管）',vb:[640,190],parts};
+}
+function sax(id,name,c){
+ const parts=[
+  part(id+'_body','管身','ww-body',P('M146 92 L176 92 L190 352 L134 352 Z')),
+  part(id+'_bow','U 型彎管','ww-body',T('M162 348 Q162 412 210 412 Q258 412 258 362',38)),
+  part(id+'_bell','喇叭管／喇叭口','ww-bell-metal',P('M240 366 L278 366 L292 250 Q300 200 344 176 L224 176 Q252 200 254 250 Z')),
+  part(id+'_neck','脖子','sax-neck',T('M84 54 Q140 48 160 96',14)),
+  part(id+'_mp','吹嘴','reed-mouth',R(30,45,56,18,6)),
+  part(id+'_lig','束圈','cl-lig',R(48,41,16,26,3)),
+  K(id+'_oct','八度鍵（脖子）',128,38,7,'8'),
+  part(id+'_palm','掌鍵（D／E♭／F）','ww-key',R(182,104,16,44,5),'掌'),
+  K(id+'_B','B 鍵（左手 1）',161,156,10,'B'),
+  K(id+'_A','A 鍵（左手 2）',162,186,10,'A'),
+  K(id+'_G','G 鍵（左手 3）',163,216,10,'G'),
+  part(id+'_lp','左小指鍵群（G♯／C♯／B／B♭）','ww-key',R(112,226,18,34,5),'左'),
+  part(id+'_side','右側鍵（E／C／B♭）','ww-key',R(190,236,14,42,5),'側'),
+  K(id+'_F','F 鍵（右手 1）',166,266,10,'F'),
+  K(id+'_E','E 鍵（右手 2）',167,296,10,'E'),
+  K(id+'_D','D 鍵（右手 3）',168,326,10,'D'),
+  part(id+'_rp','右小指鍵（E♭／C）','ww-key',R(194,292,14,30,5),'右'),
+  K(id+'_lBb','低音 B♭ 鍵',265,300,9,'B♭'),
+  K(id+'_lB','低音 B 鍵',263,334,9,'B'),
+  part(id+'_guard','護鍵罩','sax-guard',R(190,424,40,10,4)),
+  part(id+'_thr','托指','ww-thumb',R(118,272,12,18,3),'托'),
+  part(id+'_ring','吊環','ww-ring',C(124,184,6))
+ ];
+ if(yes(c.ff))parts.push(K(id+'_fF','前置 F 鍵（Front F）',142,128,6,'F'));
+ if(yes(c.hfs))parts.push(K(id+'_hFs','高音 F♯ 鍵',208,120,6,'F♯'));
+ if(yes(c.lowA))parts.push(K(id+'_lA','低音 A 鍵',302,262,8,'A'));
+ return{id,name,vb:[380,450],parts};
+}
+function trumpet(c){
+ const parts=[
+  part('tp_slide','主調音管','br-slide',T('M262 150 L140 150 Q108 150 108 176 Q108 202 140 202 L250 202',11)),
+  part('tp_wk','水鍵','br-waterkey',C(136,216,8),'水'),
+  part('tp_brace','支柱／焊點','br-tube',T('M226 114 L226 84 L380 82',5)),
+  part('tp_lead','吹嘴管','br-leadpipe',T('M60 120 L262 120',11)),
+  part('tp_mp','吹嘴','br-mouthpiece',P('M12 110 L30 115 L62 116 L62 124 L30 125 L12 130 Z')),
+  part('tp_bell','喇叭管／喇叭口','br-bell',P('M380 72 L540 78 Q600 68 646 22 L646 152 Q600 108 540 98 L380 94 Z')),
+  part('tp_hook','小指鉤','br-ring',R(242,100,9,12,2)),
+  part('tp_v1','第 1 活塞','br-valve',R(262,62,30,120,7),'1'),
+  part('tp_v2','第 2 活塞','br-valve',R(302,62,30,120,7),'2'),
+  part('tp_v3','第 3 活塞','br-valve',R(342,62,30,120,7),'3'),
+  part('tp_s1','第 1 調音管','br-slide',T('M270 182 L270 212 Q277 224 284 212 L284 182',6)),
+  part('tp_s2','第 2 調音管','br-slide',T('M310 182 L310 198 Q317 210 324 198 L324 182',6)),
+  part('tp_s3','第 3 調音管','br-slide',T('M350 182 L350 220 Q357 232 364 220 L364 182',6)),
+  c.t3==='trigger'?part('tp_ring3','第 3 調音管扳機','br-lever',R(376,206,16,9,3)):part('tp_ring3','第 3 調音管指環','br-ring',C(382,214,7))
+ ];
+ if(c.t1==='trigger')parts.push(part('tp_trig','第 1 調音管扳機','br-lever',R(242,184,16,9,3)));
+ if(c.t1==='saddle')parts.push(part('tp_sad','第 1 調音管指鉤（Saddle）','br-ring',R(244,186,12,8,3)));
+ return{id:'trumpet',name:'小號',vb:[660,240],parts};
+}
+function horn(c){
+ const dbl=c.type==='double';
+ const parts=[
+  part('hn_coil','主管環／支柱','br-tube',T('M200 80 A110 110 0 1 0 200.1 80',14)),
+  part('hn_bell',c.bell==='detach'?'喇叭管／喇叭口（可拆式）':'喇叭管／喇叭口','br-bell',P('M286 250 Q350 290 424 350 L330 372 Q316 316 268 280 Z')),
+  part('hn_lead','吹嘴管','br-leadpipe',T('M44 150 L150 150',9)),
+  part('hn_mp','吹嘴','br-mouthpiece',P('M10 141 L24 145 L46 146 L46 154 L24 155 L10 159 Z')),
+  part('hn_main','主調音管','br-slide',R(170,300,60,22,8)),
+  part('hn_wk','水鍵','br-waterkey',C(246,320,8),'水'),
+  part('hn_bbs',c.type==='F'?'F 調音管':'B♭ 調音管','br-slide',R(104,200,24,48,8)),
+  part('hn_vs','轉閥調音管群','br-slide',R(160,178,90,22,8)),
+  c.link==='mech'?part('hn_lever','按鍵／轉閥連桿','br-linkage',R(160,90,96,12,5),'連桿'):part('hn_lever','按鍵／轉閥拉線','br-lever',R(160,90,96,12,5),'按鍵'),
+  part('hn_r1','第 1 轉閥','br-rotor',C(172,132,14),'1'),
+  part('hn_r2','第 2 轉閥','br-rotor',C(206,128,14),'2'),
+  part('hn_r3','第 3 轉閥','br-rotor',C(240,132,14),'3'),
+  part('hn_hook','小指鉤','br-ring',R(118,120,9,13,2))
+ ];
+ if(dbl)parts.push(part('hn_fs','F 調音管','br-slide',R(276,170,24,48,8)),part('hn_rt','拇指轉閥（F／B♭ 切換）','br-rotor',C(136,166,12),'拇'));
+ if(c.bell==='detach')parts.push(part('hn_bring','喇叭口螺環','br-bellring',R(262,244,30,10,3)));
+ return{id:'horn',name:'法國號',vb:[440,380],parts};
+}
+function trombone(c){
+ const parts=[
+  part('tb_bell','喇叭管／喇叭口','br-bell',P('M120 52 L500 56 Q584 46 664 10 L664 114 Q584 80 500 72 L120 70 Z')),
+  part('tb_tune','主調音管','br-slide',T('M120 61 L60 61 Q36 61 36 82 Q36 100 60 100 L100 100',10)),
+  part('tb_brace','支柱／焊點','br-tube',R(150,70,7,72,2)),
+  part('tb_mp','吹嘴','br-mouthpiece',P('M6 140 L18 144 L40 145 L40 153 L18 154 L6 158 Z')),
+  part('tb_in','內滑管','tb-inner',[R(40,142,150,10,4),R(40,172,150,10,4)]),
+  part('tb_out','外滑管','tb-outer',[R(186,140,420,14,5),R(186,170,420,14,5)]),
+  part('tb_bow','滑管彎管','tb-bow',T('M604 147 Q640 147 640 162 Q640 177 604 177',14)),
+  part('tb_lock','滑管鎖','tb-lock',R(64,154,16,16,3),'鎖'),
+  part('tb_ibr','內滑管橫撐','tb-brace',R(110,150,10,24,3)),
+  part('tb_obr','外滑管橫撐','tb-brace',R(260,152,10,20,3)),
+  part('tb_wk','水鍵','br-waterkey',C(628,194,8),'水')
+ ];
+ if(c.f!=='none'){
+  const end=c.f==='open'?440:300;
+  parts.push(part('tb_fsl',c.f==='open'?'F 轉閥調音管（開放式）':'F 轉閥調音管（封閉式）','br-slide',T(`M204 100 L${end} 100 Q${end+20} 100 ${end+20} 114 Q${end+20} 128 ${end} 128 L212 128`,8)),
+   part('tb_frot','F 轉閥','br-rotor',C(190,104,14),'F'),
+   part('tb_ftrig','F 轉閥扳機','br-lever',R(160,112,16,10,3)));
+ }
+ return{id:'trombone',name:'長號',vb:[680,210],parts};
+}
+function lowBrass(id,name,c){
+ const n=+c.valves||4, rot=c.vtype==='rotary';
+ const valves=[];
+ for(let i=0;i<n;i++)valves.push(rot
+  ?part(`${id}_v${i+1}`,`第 ${i+1} 轉閥`,'br-rotor',C(250+i*26,226,11),String(i+1))
+  :part(`${id}_v${i+1}`,`第 ${i+1} 活塞`,'br-valve',R(238+i*24,170,20,110,6),String(i+1)));
+ const span=rot?n*26:n*24-4;
+ const parts=[
+  part(id+'_bow','大彎管','br-tube',T('M160 336 Q160 404 200 404 Q240 404 240 300',22)),
+  part(id+'_lead','吹嘴管','br-leadpipe',T('M42 308 Q96 296 136 270',10)),
+  part(id+'_body','主管／支柱','br-tube',R(136,120,88,220,12)),
+  part(id+'_bell','喇叭口','br-bell',P('M40 18 L320 18 Q252 40 224 92 L224 124 L136 124 L136 92 Q108 40 40 18 Z')),
+  part(id+'_mp','吹嘴','br-mouthpiece',P('M8 300 L22 303 L44 304 L44 312 L22 313 L8 316 Z')),
+  part(id+'_vs',rot?'轉閥調音管群':'活塞調音管群','br-slide',R(238,140,span,22,6)),
+  ...valves,
+  part(id+'_main','主調音管','br-slide',R(238,292,62,22,8)),
+  part(id+'_wk','水鍵','br-waterkey',C(200,424,8),'水')
+ ];
+ if(rot)parts.push(part(id+'_lever','按鍵／連桿','br-linkage',R(238,250,span,10,4)));
+ if(yes(c.comp))parts.push(part(id+'_comp','補償管','br-slide',R(238,114,span,20,6),'補償'));
+ return{id,name,vb:[370,440],parts};
+}
+function snare(c){
+ const lugs=[72,132,192,252,312].map((x,i)=>part('sn_lug'+i,`調音螺絲／耳朵 ${i+1}`,'pc-lug',R(x-6,104,12,60,4),String(i+1)));
+ return{id:'snare',name:'小鼓',vb:[400,300],parts:[
+  part('sn_shell',c.shell==='wood'?'鼓身（木）':'鼓身（金屬）','pc-shell',P('M50 80 L50 190 A150 40 0 0 0 350 190 L350 80 Z')),
+  part('sn_bot','響弦面鼓皮（底面）','pc-head',T('M50 190 A150 40 0 0 0 350 190',5)),
+  ...lugs,
+  part('sn_str','響弦開關','pc-strainer',R(214,118,28,30,4),'開關'),
+  part('sn_head','打擊面鼓皮','pc-head',E(200,80,150,40)),
+  part('sn_hoop','鼓框','pc-hoop',T('M50 80 A150 40 0 1 0 350 80 A150 40 0 1 0 50 80',7)),
+  part('sn_stand','鼓架','pc-stand',T('M200 234 L200 290 M200 262 L140 296 M200 262 L260 296',6)),
+  part('sn_snares','響弦','pc-snares',[R(110,246,70,5,2),R(110,256,70,5,2),R(220,246,70,5,2),R(220,256,70,5,2)])
+ ]}
+}
+function bassDrum(c){
+ const lugs=[];for(let i=0;i<8;i++){const a=(i*45-90+22.5)*Math.PI/180;lugs.push(part('bd_lug'+i,`調音螺絲 ${i+1}`,'pc-lug',C(+(200+136*Math.cos(a)).toFixed(1),+(160+136*Math.sin(a)).toFixed(1),9),String(i+1)))}
+ return{id:'bassdrum',name:'大鼓',vb:[400,340],parts:[
+  part('bd_stand',c.stand==='tilt'?'吊架（可傾斜）':'鼓架（固定式）','pc-stand',T('M120 270 L84 330 M280 270 L316 330 M84 330 L316 330',8)),
+  part('bd_shell','鼓身','pc-shell',C(200,160,144)),
+  part('bd_hoop','鼓框','pc-hoop',T('M200 34 A126 126 0 1 0 200.1 34',12)),
+  part('bd_head','鼓皮（打擊面）','pc-head',C(200,160,118)),
+  ...lugs
+ ]}
+}
+function timpani(c){
+ const lugs=[80,130,175,225,270,320].map((x,i)=>part('tm_lug'+i,`調音螺絲 ${i+1}`,'pc-lug',R(x-5,104,10,30,3)));
+ const parts=[
+  part('tm_stand','腳架／輪子','pc-stand',[T('M120 262 L100 330 M280 262 L300 330',8),C(100,342,10),C(300,342,10)]),
+  part('tm_pedal',c.pedal==='ratchet'?'踏板（棘輪離合式）':'踏板（平衡式）','pc-pedal',P('M150 326 L250 326 L242 352 L158 352 Z')),
+  part('tm_bowl',c.bowl==='fiberglass'?'鍋身（玻璃纖維）':'鍋身（銅）','pc-shell',P('M60 92 Q70 262 200 272 Q330 262 340 92 Z')),
+  ...lugs,
+  part('tm_head',`鼓皮（${c.size} 吋）`,'pc-head',E(200,92,140,30)),
+  part('tm_hoop','鼓框','pc-hoop',T('M54 92 A146 36 0 1 0 346 92 A146 36 0 1 0 54 92',8)),
+  part('tm_gauge','音高指示器','pc-gauge',R(16,36,48,16,4),'指示')
+ ];
+ if(yes(c.fine))parts.push(part('tm_fine','微調器','pc-fine',C(338,152,10),'微'));
+ return{id:'timpani',name:'定音鼓',vb:[400,370],parts};
+}
+function mallet(id,name,startOct,res,c){
+ const count=+c.bars, L=['C','D','E','F','G','A','B'],x0=30,span=580,bw=span/count-4,bars=[],resShapes=[];
+ const mat=c.mat==='synthetic'?'（合成）':c.mat==='rosewood'?'（玫瑰木）':'';
+ for(let i=0;i<count;i++){
+  const h=124-i*(54/(count-1)),x=x0+i*(span/count),note=L[i%7]+(startOct+Math.floor(i/7));
+  bars.push(part(`${id}_b${i}`,`音板 ${note}${mat}`,'pc-bar',R(+x.toFixed(1),+(100-h/2).toFixed(1),+bw.toFixed(1),+h.toFixed(1),3),note));
+  if(res){const len=80-i*(50/(count-1));resShapes.push(R(+(x+bw*0.2).toFixed(1),168,+(bw*0.6).toFixed(1),+len.toFixed(1),2))}
+ }
+ const parts=[];
+ if(!res)parts.push(part(id+'_case','琴盒／外框','pc-case',R(14,24,612,152,10)));
+ parts.push(...bars,part(id+'_cord','吊繩／固定柱','pc-cord',[T('M22 82 L618 82',3),T('M22 118 L618 118',3)]));
+ if(res)parts.push(part(id+'_res','共鳴管','pc-resonator',resShapes),
+   part(id+'_stand','琴架／輪子','pc-stand',[T('M24 254 L616 254',8),C(40,264,7),C(600,264,7)]));
+ return{id,name,vb:[640,res?276:190],parts};
+}
+function cymbals(c){
+ const h=c.handle==='wood'?'木把手':'鈸帶';
+ return{id:'cymbals',name:'鈸',vb:[440,220],deco:[C(116,110,30),C(324,110,30)],parts:[
+  part('cy_l',`左鈸 鈸面（${c.size} 吋）`,'pc-cymbal',C(116,110,96)),
+  part('cy_r',`右鈸 鈸面（${c.size} 吋）`,'pc-cymbal',C(324,110,96)),
+  part('cy_ls','左鈸 '+h,'pc-strap',R(102,96,28,28,8),'帶'),
+  part('cy_rs','右鈸 '+h,'pc-strap',R(310,96,28,28,8),'帶')
+ ]}
+}
+
+const I=(id,name,make)=>({id,name,make});
+const CATALOG = {
+ '管樂':{
+  '木管':[I('flute','長笛',flute),I('piccolo','短笛',piccolo),I('clarinet','單簧管（豎笛）',clarinet),I('oboe','雙簧管',oboe),I('bassoon','低音管（巴松管）',bassoon),
+         I('asax','中音薩克斯風',c=>sax('asax','中音薩克斯風',c)),I('tsax','次中音薩克斯風',c=>sax('tsax','次中音薩克斯風',c)),I('bsax','上低音薩克斯風',c=>sax('bsax','上低音薩克斯風',c))],
+  '銅管':[I('trumpet','小號',trumpet),I('horn','法國號',horn),I('trombone','長號',trombone),I('euph','上低音號',c=>lowBrass('euph','上低音號',c)),I('tuba','低音號',c=>lowBrass('tuba','低音號',c))],
+  '打擊':[I('snare','小鼓',snare),I('bassdrum','大鼓',bassDrum),I('timpani','定音鼓',timpani),I('glock','鐵琴',c=>mallet('glock','鐵琴',5,false,c)),I('xylo','木琴',c=>mallet('xylo','木琴',4,true,c)),I('cymbals','鈸',cymbals)]
+ }
+};
+
+/* ================= 樂器配置選項 =================
+   d(o)：依型號代碼算出預設值。型號代碼（"型號|代碼"）：
+   o 開孔 b B尾管 e E分離 i 直列G｜l 低音E♭撥桿｜x 簡易系統｜u 全自動八度｜f 高音F♯ a 低音A｜t 第1扳機
+   s 單F法國號 k 連桿 d 可拆喇叭口｜F F轉閥 O 開放式｜數字 活塞數 c 補償 R 轉閥式｜w 木鼓身｜g 玻璃纖維鍋
+   @N 音板數 y 合成音板｜m 金屬 r 樹脂 */
+const NY=[['no','無'],['yes','有']];
+const yn=b=>b?'yes':'no';
+const SAX_OPTS=[
+ {k:'hfs',l:'高音 F♯ 鍵',ch:NY,d:o=>yn(o.f)},
+ {k:'ff',l:'前置 F 鍵（Front F）',ch:NY,d:()=> 'yes'}];
+const OPTS={
+ flute:[
+  {k:'foot',l:'尾管',ch:[['C','C 尾管'],['B','B 尾管']],d:o=>o.b?'B':'C'},
+  {k:'holes',l:'按鍵',ch:[['closed','閉孔（Covered）'],['open','開孔（Open hole）']],d:o=>o.o?'open':'closed'},
+  {k:'g',l:'G 鍵排列',ch:[['offset','偏置（Offset G）'],['inline','直列（Inline G）']],d:o=>o.i?'inline':'offset'},
+  {k:'splitE',l:'E 分離機構',ch:NY,d:o=>yn(o.e)},
+  {k:'csTrill',l:'C♯ 顫音鍵',ch:NY,d:()=>'no'},
+  {k:'roller',l:'尾管滾輪',ch:[['std','標準（C／B 觸鍵）'],['ds','另加 D♯ 滾輪'],['csds','另加 C♯＋D♯ 滾輪']],d:()=>'std'}],
+ piccolo:[
+  {k:'body',l:'管身材質',ch:[['wood','木製'],['resin','樹脂'],['metal','金屬']],d:o=>o.m?'metal':o.r?'resin':'wood'},
+  {k:'splitE',l:'E 分離機構',ch:NY,d:o=>yn(o.e)}],
+ clarinet:[
+  {k:'lowEb',l:'低音 E♭ 撥桿',ch:NY,d:o=>yn(o.l)},
+  {k:'auxAb',l:'左手 A♭／E♭ 輔助鍵',ch:NY,d:o=>yn(o.l)}],
+ oboe:[
+  {k:'sys',l:'按鍵系統',ch:[['simple','簡易系統（無低音 B♭、左手 F）'],['full','完整音樂院式']],d:o=>o.x?'simple':'full'},
+  {k:'oct',l:'八度鍵',ch:[['semi','半自動'],['full','全自動']],d:o=>o.u?'full':'semi'},
+  {k:'oct3',l:'第三八度鍵',ch:NY,d:o=>yn(!o.x)}],
+ bassoon:[
+  {k:'hiD',l:'高音 D 鍵',ch:NY,d:o=>yn(!o.x)},
+  {k:'hiE',l:'高音 E 鍵',ch:NY,d:o=>yn(!o.x&&o.h)},
+  {k:'wlock',l:'耳語鍵鎖',ch:NY,d:o=>yn(!o.x)}],
+ asax:SAX_OPTS, tsax:SAX_OPTS,
+ bsax:[...SAX_OPTS,{k:'lowA',l:'低音 A 鍵',ch:NY,d:o=>yn(o.a)}],
+ trumpet:[
+  {k:'t1',l:'第 1 調音管',ch:[['none','無'],['saddle','指鉤（Saddle）'],['trigger','扳機（Trigger）']],d:o=>o.t?'trigger':'saddle'},
+  {k:'t3',l:'第 3 調音管',ch:[['ring','指環'],['trigger','扳機']],d:()=>'ring'}],
+ horn:[
+  {k:'type',l:'管系',ch:[['double','雙管（F／B♭）'],['F','單 F'],['Bb','單 B♭']],d:o=>o.s?'F':'double'},
+  {k:'link',l:'轉閥連動',ch:[['string','拉線'],['mech','機械連桿']],d:o=>o.k?'mech':'string'},
+  {k:'bell',l:'喇叭口',ch:[['fixed','固定式'],['detach','可拆式']],d:o=>o.d?'detach':'fixed'}],
+ trombone:[
+  {k:'f',l:'F 轉閥',ch:[['none','無'],['closed','有（封閉式繞管）'],['open','有（開放式繞管）']],d:o=>o.F?(o.O?'open':'closed'):'none'}],
+ euph:[
+  {k:'valves',l:'活塞數',ch:[['3','3 鍵'],['4','4 鍵']],d:o=>String(o.valves||4)},
+  {k:'comp',l:'補償系統',ch:NY,d:o=>yn(o.c)}],
+ tuba:[
+  {k:'valves',l:'閥數',ch:[['3','3 鍵'],['4','4 鍵'],['5','5 鍵']],d:o=>String(o.valves||4)},
+  {k:'vtype',l:'閥門形式',ch:[['piston','活塞式'],['rotary','轉閥式']],d:o=>o.R?'rotary':'piston'},
+  {k:'comp',l:'補償系統',ch:NY,d:o=>yn(o.c)}],
+ snare:[{k:'shell',l:'鼓身材質',ch:[['metal','金屬'],['wood','木']],d:o=>o.w?'wood':'metal'}],
+ bassdrum:[{k:'stand',l:'鼓架',ch:[['tilt','吊架（可傾斜）'],['fixed','固定式']],d:()=>'tilt'}],
+ timpani:[
+  {k:'size',l:'尺寸',ch:[['32','32 吋'],['29','29 吋'],['26','26 吋'],['23','23 吋'],['20','20 吋']],d:()=>'29'},
+  {k:'bowl',l:'鍋身',ch:[['copper','銅'],['fiberglass','玻璃纖維']],d:o=>o.g?'fiberglass':'copper'},
+  {k:'pedal',l:'踏板',ch:[['balanced','平衡式'],['ratchet','棘輪離合式']],d:()=>'balanced'},
+  {k:'fine',l:'微調器',ch:NY,d:o=>yn(!o.g)}],
+ glock:[{k:'bars',l:'音域',ch:[['18','2.5 個八度'],['22','3 個八度']],d:o=>String(o.bars||18)}],
+ xylo:[
+  {k:'bars',l:'音域',ch:[['26','3.5 個八度'],['29','4 個八度']],d:o=>String(o.bars||26)},
+  {k:'mat',l:'音板材質',ch:[['rosewood','玫瑰木'],['synthetic','合成材質']],d:o=>o.y?'synthetic':'rosewood'}],
+ cymbals:[
+  {k:'size',l:'尺寸',ch:[['16','16 吋'],['18','18 吋'],['20','20 吋']],d:()=>'18'},
+  {k:'handle',l:'握把',ch:[['strap','鈸帶'],['wood','木把手']],d:()=>'strap'}]
+};
+function configFor(id,o){const c={};for(const op of OPTS[id]||[])c[op.k]=op.d(o||{});return c}
+
+/* ================= Brands / grades / models =================
+   長笛 Yamaha 規格依官方 200／300／400 系列規格表；其他廠牌依型號代碼慣例
+   （R 開孔、B 或 H B 尾管、E 分離機構），待校正。 */
+const GRADES={S:'學生級',I:'進階級',P:'專業級'};
+const MODELS={
+ flute:{'Yamaha':{S:['YFL-212|e','YFL-222','YFL-262|o','YFL-272|oe','YFL-282|oi'],
+                  I:['YFL-312|e','YFL-322','YFL-362|o','YFL-362H|ob','YFL-372|oe','YFL-372H|obe','YFL-382H|obi','YFL-412|e','YFL-462H|ob','YFL-472H|obe','YFL-482H|obi'],
+                  P:['YFL-517|e','YFL-677H|obe','YFL-777H|obe','YFL-897H|obei']},
+  'Pearl':{S:['PF-505E|e','PF-505RE|oe','PF-525E|e'],I:['PF-665E|e','PF-665RBE|obe','PF-765RBE|obe'],P:['PF-795RBE（Elegante）|obe']},
+  'Jupiter':{S:['JFL700E|e','JFL700RE|oe'],I:['JFL1000RBE|obe']},
+  'Altus':{I:['807E|e','807RBE|obe','907RBE|obe'],P:['1107RBE|obe','1207RBE|obe']},
+  'Muramatsu':{I:['EX-CCE|e','EX-RCE|oe','EX-RBE|obe'],P:['GX-RBE|obe','DS-RBE|obe']},
+  'Sankyo':{I:['Etude|o'],P:['Silversonic|ob','Artist|ob']},
+  'Miyazawa':{I:['Atelier-1 RE|oe','Atelier-3 RBE|obe'],P:['BR-602 RBE|obe']},
+  'Trevor James':{S:['10X|e'],I:['Cantabile|obe','Virtuoso|obe']}},
+ piccolo:{'Yamaha':{S:['YPC-32|r'],I:['YPC-62'],P:['YPC-81','YPC-87R']},
+  'Pearl':{S:['PFP-105E|re'],I:['PFP-165E|e']},
+  'Jupiter':{S:['JPC700|m']},
+  'Burkart':{I:['Resona 300'],P:['Professional']},
+  'Keefe':{P:['Keefe Piccolo']}},
+ clarinet:{'Yamaha':{S:['YCL-255'],I:['YCL-450'],P:['YCL-650','YCL-CSVR|l','YCL-SEVR|l']},
+  'Buffet Crampon':{S:['Prodige','B12'],I:['E11','E13'],P:['R13','Festival|l','Tosca|l']},
+  'Selmer Paris':{I:['Présence'],P:['Signature','Recital|l','Privilege|l']},
+  'Jupiter':{S:['JCL700N'],I:['JCL1100']},
+  'Backun':{I:['Protégé'],P:['MoBa|l']}},
+ oboe:{'Yamaha':{S:['YOB-241|x'],I:['YOB-431','YOB-432|u'],P:['YOB-831','YOB-841']},
+  'Fox':{S:['Renard 330|x'],I:['Renard 333'],P:['Model 300']},
+  'Bulgheroni':{S:['FB 091|x']},
+  'Lorée':{P:['Royal','AK']},
+  'Marigaux':{P:['901','M2']},
+  'Howarth':{I:['S10'],P:['XL']}},
+ bassoon:{'Yamaha':{S:['YFG-121|x'],P:['YFG-811|h','YFG-812|h']},
+  'Fox':{S:['Renard 220|x','Renard 222'],I:['Renard 240'],P:['Model 601|h','Model 660|h']},
+  'Schreiber':{S:['S16|x'],I:['5071']},
+  'Püchner':{I:['Nr. 23'],P:['Superior|h']},
+  'Heckel':{P:['Heckel|h']}},
+ asax:{'Yamaha':{S:['YAS-280|f'],I:['YAS-480|f','YAS-62|f'],P:['YAS-82Z|f','YAS-875EX|f']},
+  'Selmer Paris':{I:['Axos|f'],P:['Super Action 80 Series II|f','Reference 54|f','Supreme|f']},
+  'Yanagisawa':{I:['A-WO1|f'],P:['A-WO10|f','A-WO20|f','A-WO37|f']},
+  'Jupiter':{S:['JAS500|f','JAS700|f'],I:['JAS1100|f']},
+  'Keilwerth':{P:['SX90R|f']}},
+ tsax:{'Yamaha':{S:['YTS-280|f'],I:['YTS-480|f','YTS-62|f'],P:['YTS-82Z|f','YTS-875EX|f']},
+  'Selmer Paris':{I:['Axos|f'],P:['Super Action 80 Series II|f','Reference 54|f','Supreme|f']},
+  'Yanagisawa':{I:['T-WO1|f'],P:['T-WO10|f','T-WO20|f']},
+  'Jupiter':{S:['JTS500|f','JTS700|f'],I:['JTS1100|f']},
+  'Keilwerth':{P:['SX90R|f']}},
+ bsax:{'Yamaha':{I:['YBS-480|a'],P:['YBS-62|af','YBS-82|af']},
+  'Selmer Paris':{P:['Super Action 80 Series II|af']},
+  'Yanagisawa':{P:['B-WO1|af','B-WO10|af']},
+  'Jupiter':{S:['JBS1000|a']}},
+ trumpet:{'Yamaha':{S:['YTR-2330','YTR-3335'],I:['YTR-4335GII|t','YTR-5335G|t'],P:['YTR-6335|t','YTR-8335 Xeno|t','YTR-9335 Chicago|t']},
+  'Bach':{S:['TR300H2'],I:['TR200'],P:['Stradivarius 180S37','Stradivarius 180ML37']},
+  'Jupiter':{S:['JTR700'],I:['JTR1100|t']},
+  'Getzen':{I:['590 Capri'],P:['3050 Custom|t']},
+  'Schilke':{P:['B1|t','S32|t']}},
+ horn:{'Yamaha':{S:['YHR-314II|s'],I:['YHR-567','YHR-668II'],P:['YHR-671','YHR-871|d']},
+  'Conn':{I:['6D'],P:['8D','11D']},
+  'Holton':{I:['H379'],P:['H179']},
+  'Hans Hoyer':{I:['6801'],P:['G10']},
+  'Alexander':{P:['103|k']},
+  'Jupiter':{S:['JHR700|s'],I:['JHR1100']}},
+ trombone:{'Yamaha':{S:['YSL-154','YSL-354'],I:['YSL-448G|F'],P:['YSL-882O Xeno|FO','YSL-891Z']},
+  'Bach':{S:['TB200B'],P:['42B','42BO|FO','36BO|FO']},
+  'Conn':{P:['8H','88H|F']},
+  'Jupiter':{S:['JTB700'],I:['JTB1100FR|F']},
+  'Shires':{P:['Custom|FO']}},
+ euph:{'Yamaha':{S:['YEP-201|4'],I:['YEP-321|4'],P:['YEP-642II|4c','YEP-842|4c']},
+  'Besson':{I:['BE165|4'],P:['Sovereign BE967|4c','Prestige BE2052|4c']},
+  'Jupiter':{S:['JEP700|3'],I:['JEP1000|4c']},
+  'Willson':{P:['2900|4c','2950|4c']},
+  'Adams':{P:['E1|4c','E3|4c']}},
+ tuba:{'Yamaha':{S:['YBB-105|3'],I:['YBB-321|4'],P:['YBB-641|4','YCB-822|5']},
+  'Jupiter':{S:['JTU700|3'],I:['JTU1110|4']},
+  'Miraphone':{P:['186|4R','1291|5R']},
+  'Meinl Weston':{P:['2165|5R']},
+  'Besson':{P:['BE994|4c']}},
+ snare:{'Yamaha':{I:['CSM-1450AII'],P:['CSM-1465AII']},
+  'Pearl':{P:['Philharmonic PHP1465|w']},
+  'Ludwig':{I:['Supraphonic LM400'],P:['Black Beauty LB417']},
+  'Majestic':{P:['Prophonic']}},
+ bassdrum:{'Yamaha':{I:['CB-628','CB-632']},
+  'Majestic':{I:['Concert 36 吋']},
+  'Adams':{P:['Philharmonic 36 吋']},
+  'Ludwig':{S:['LE-788']}},
+ timpani:{'Adams':{I:['Universal'],P:['Philharmonic','Professional Gen II']},
+  'Yamaha':{I:['TP-3100 系列'],P:['TP-4300R 系列','TP-6300 系列']},
+  'Majestic':{I:['Prophonic'],P:['Symphonic']},
+  'Ludwig':{S:['Standard Fiberglass|g'],P:['Professional']}},
+ glock:{'Yamaha':{I:['YG-250D|@18'],P:['YG-1210|@22']},
+  'Adams':{P:['Alpha GAD30|@22']},
+  'Musser':{P:['M645|@18']},
+  'Majestic':{S:['Student Bells|@18']}},
+ xylo:{'Yamaha':{I:['YX-135|@26y'],P:['YX-500R|@26']},
+  'Adams':{P:['Concert XS2HV35|@26','Alpha XA1HV40|@29']},
+  'Musser':{P:['M51 Kelon|@26y']},
+  'Majestic':{I:['X6535|@26y']}},
+ cymbals:{'Zildjian':{S:['ZBT Band'],I:['A Zildjian Orchestral'],P:['K Constantinople Orchestral']},
+  'Sabian':{S:['SBR Band'],I:['B8X Band'],P:['HH Germanic','AAX Concert']},
+  'Paiste':{I:['PST 8'],P:['Signature Concert']}}
+};
+function parseModel(str){
+ const [name,fl='']=str.split('|'),o={};
+ const m=fl.match(/@(\d+)/);if(m)o.bars=+m[1];
+ for(const ch of fl.replace(/@\d+/,''))/\d/.test(ch)?o.valves=+ch:o[ch]=true;
+ return{name,o};
+}
+
+/* ================= Schools（教育部各級學校名錄：國小 114、國中 113、高中職 114、大專 113 學年度） ================= */
+const SCHOOLS={"counties":["臺北市","新北市","基隆市","桃園市","新竹市","新竹縣","宜蘭縣"],"levels":{"國小":[["市立中山國小",0,"中山區"],["市立中正國小",0,"中山區"],["市立五常國小",0,"中山區"],["市立吉林國小",0,"中山區"],["市立大佳國小",0,"中山區"],["市立大直國小",0,"中山區"],["市立懷生國小",0,"中山區"],["市立永安國小",0,"中山區"],["市立濱江國小",0,"中山區"],["市立長安國小",0,"中山區"],["市立長春國小",0,"中山區"],["市立南門國小",0,"中正區"],["市立國語實小",0,"中正區"],["市立忠孝國小",0,"中正區"],["市立忠義實驗國小",0,"中正區"],["市立東門國小",0,"中正區"],["市立河堤國小",0,"中正區"],["市立螢橋國小",0,"中正區"],["臺北市立大學附小",0,"中正區"],["市立三興國小",0,"信義區"],["市立信義國小",0,"信義區"],["市立光復國小",0,"信義區"],["市立博愛國小",0,"信義區"],["市立吳興國小",0,"信義區"],["市立福德國小",0,"信義區"],["市立興雅國小",0,"信義區"],["市立雙永國小",0,"信義區"],["市立內湖國小",0,"內湖區"],["市立南湖國小",0,"內湖區"],["市立大湖國小",0,"內湖區"],["市立康寧國小",0,"內湖區"],["市立文湖國小",0,"內湖區"],["市立新湖國小",0,"內湖區"],["市立明湖國小",0,"內湖區"],["市立東湖國小",0,"內湖區"],["市立潭美國小",0,"內湖區"],["市立碧湖國小",0,"內湖區"],["市立西湖國小",0,"內湖區"],["市立麗山國小",0,"內湖區"],["市立麗湖國小",0,"內湖區"],["市立北投國小",0,"北投區"],["市立大屯國小",0,"北投區"],["市立文化國小",0,"北投區"],["市立文林國小",0,"北投區"],["市立明德國小",0,"北投區"],["市立桃源國小",0,"北投區"],["市立泉源實驗國小",0,"北投區"],["市立清江國小",0,"北投區"],["市立湖山國小",0,"北投區"],["市立湖田實驗國小",0,"北投區"],["市立石牌國小",0,"北投區"],["市立立農國小",0,"北投區"],["市立義方國小",0,"北投區"],["市立逸仙國小",0,"北投區"],["市立關渡國小",0,"北投區"],["私立薇閣小學",0,"北投區"],["市立修德國小",0,"南港區"],["市立南港國小",0,"南港區"],["市立成德國小",0,"南港區"],["市立東新國小",0,"南港區"],["市立玉成國小",0,"南港區"],["市立胡適國小",0,"南港區"],["市立舊莊國小",0,"南港區"],["市立三玉國小",0,"士林區"],["市立劍潭國小",0,"士林區"],["市立士東國小",0,"士林區"],["市立士林國小",0,"士林區"],["市立天母國小",0,"士林區"],["市立富安國小",0,"士林區"],["市立平等國小",0,"士林區"],["市立文昌國小",0,"士林區"],["市立溪山實驗國小",0,"士林區"],["市立百齡國小",0,"士林區"],["市立社子國小",0,"士林區"],["市立福林國小",0,"士林區"],["市立芝山國小",0,"士林區"],["市立葫蘆國小",0,"士林區"],["市立蘭雅國小",0,"士林區"],["市立陽明山國小",0,"士林區"],["市立雙溪國小",0,"士林區"],["市立雨聲國小",0,"士林區"],["市立雨農國小",0,"士林區"],["市立大同國小",0,"大同區"],["市立大橋國小",0,"大同區"],["市立大龍國小",0,"大同區"],["市立太平國小",0,"大同區"],["市立延平國小",0,"大同區"],["市立日新國小",0,"大同區"],["市立永樂國小",0,"大同區"],["市立蓬萊國小",0,"大同區"],["市立雙蓮國小",0,"大同區"],["國立臺北教大實小",0,"大安區"],["市立仁愛國小",0,"大安區"],["市立公館國小",0,"大安區"],["市立古亭國小",0,"大安區"],["市立和平實驗國小",0,"大安區"],["市立大安國小",0,"大安區"],["市立幸安國小",0,"大安區"],["市立建安國小",0,"大安區"],["市立新生國小",0,"大安區"],["市立金華國小",0,"大安區"],["市立銘傳國小",0,"大安區"],["市立龍安國小",0,"大安區"],["私立新民小學",0,"大安區"],["私立立人國(中)小",0,"大安區"],["國立政大實小",0,"文山區"],["市立力行國小",0,"文山區"],["市立博嘉實驗國小",0,"文山區"],["市立實踐國小",0,"文山區"],["市立志清國小",0,"文山區"],["市立指南實小",0,"文山區"],["市立明道國小",0,"文山區"],["市立景美國小",0,"文山區"],["市立景興國小",0,"文山區"],["市立木柵國小",0,"文山區"],["市立武功國小",0,"文山區"],["市立永建國小",0,"文山區"],["市立溪口國小",0,"文山區"],["市立興德國小",0,"文山區"],["市立興華國小",0,"文山區"],["市立興隆國小",0,"文山區"],["市立萬福國小",0,"文山區"],["市立萬興國小",0,"文山區"],["市立萬芳國小",0,"文山區"],["市立辛亥國小",0,"文山區"],["私立中山小學",0,"文山區"],["私立再興小學",0,"文山區"],["市立三民國小",0,"松山區"],["市立健康國小",0,"松山區"],["市立敦化國小",0,"松山區"],["市立松山國小",0,"松山區"],["市立民族國小",0,"松山區"],["市立民權國小",0,"松山區"],["市立民生國小",0,"松山區"],["市立西松國小",0,"松山區"],["市立大理國小",0,"萬華區"],["市立新和國小",0,"萬華區"],["市立東園國小",0,"萬華區"],["市立福星國小",0,"萬華區"],["市立老松國小",0,"萬華區"],["市立華江國小",0,"萬華區"],["市立萬大國小",0,"萬華區"],["市立西園國小",0,"萬華區"],["市立西門國小",0,"萬華區"],["市立雙園國小",0,"萬華區"],["市立龍山國小",0,"萬華區"],["私立光仁小學",0,"萬華區"],["市立三峽國小",1,"三峽區"],["市立中園國小",1,"三峽區"],["市立五寮國小",1,"三峽區"],["市立介壽國小",1,"三峽區"],["市立北大國小",1,"三峽區"],["市立大埔國小",1,"三峽區"],["市立大成國小",1,"三峽區"],["市立安溪國小",1,"三峽區"],["市立建安國小",1,"三峽區"],["市立成福國小",1,"三峽區"],["市立插角森林實小",1,"三峽區"],["市立有木國小",1,"三峽區"],["市立民義國小",1,"三峽區"],["市立龍埔國小",1,"三峽區"],["市立三芝國小",1,"三芝區"],["市立橫山國小",1,"三芝區"],["市立興華國小",1,"三芝區"],["市立三光國小",1,"三重區"],["市立三重國小",1,"三重區"],["市立二重國小",1,"三重區"],["市立五華國小",1,"三重區"],["市立修德國小",1,"三重區"],["市立光榮國小",1,"三重區"],["市立光興國小",1,"三重區"],["市立厚德國小",1,"三重區"],["市立正義國小",1,"三重區"],["市立永福國小",1,"三重區"],["市立碧華國小",1,"三重區"],["市立興穀國小",1,"三重區"],["市立重陽國小",1,"三重區"],["市立集美國小",1,"三重區"],["市立中和國小",1,"中和區"],["市立光復國小",1,"中和區"],["市立復興國小",1,"中和區"],["市立景新國小",1,"中和區"],["市立秀山國小",1,"中和區"],["市立積穗國小",1,"中和區"],["市立自強國小",1,"中和區"],["市立興南國小",1,"中和區"],["市立錦和國小",1,"中和區"],["市立五股國小",1,"五股區"],["市立德音國小",1,"五股區"],["市立成州國小",1,"五股區"],["市立更寮國小",1,"五股區"],["市立八里國小",1,"八里區"],["市立大崁國小",1,"八里區"],["市立米倉國小",1,"八里區"],["市立長坑國小",1,"八里區"],["私立聖心國小",1,"八里區"],["市立土城國小",1,"土城區"],["市立安和國小",1,"土城區"],["市立廣福國小",1,"土城區"],["市立樂利國小",1,"土城區"],["市立清水國小",1,"土城區"],["市立頂埔國小",1,"土城區"],["市立坪林國小",1,"坪林區"],["市立十分國小",1,"平溪區"],["市立平溪國小",1,"平溪區"],["市立菁桐國小",1,"平溪區"],["市立中正國小",1,"新店區"],["市立北新國小",1,"新店區"],["市立大豐國小",1,"新店區"],["市立安坑國小",1,"新店區"],["市立屈尺國小",1,"新店區"],["市立新和國小",1,"新店區"],["市立新店國小",1,"新店區"],["市立直潭國小",1,"新店區"],["市立達觀國(中)小",1,"新店區"],["市立雙城國小",1,"新店區"],["市立雙峰國小",1,"新店區"],["市立青潭國小",1,"新店區"],["市立龜山國小",1,"新店區"],["市立中信國小",1,"新莊區"],["市立中港國小",1,"新莊區"],["市立丹鳳國小",1,"新莊區"],["市立光華國小",1,"新莊區"],["市立國泰國小",1,"新莊區"],["市立思賢國小",1,"新莊區"],["市立新泰國小",1,"新莊區"],["市立新莊國小",1,"新莊區"],["市立昌平國小",1,"新莊區"],["市立昌隆國小",1,"新莊區"],["市立榮富國小",1,"新莊區"],["市立民安國小",1,"新莊區"],["市立興化國小",1,"新莊區"],["市立裕民國小",1,"新莊區"],["市立豐年國小",1,"新莊區"],["市立頭前國小",1,"新莊區"],["市立中山國小",1,"板橋區"],["市立信義國小",1,"板橋區"],["市立國光國小",1,"板橋區"],["市立埔墘國小",1,"板橋區"],["市立大觀國小",1,"板橋區"],["市立實踐國小",1,"板橋區"],["市立後埔國小",1,"板橋區"],["市立文德國小",1,"板橋區"],["市立文聖國小",1,"板橋區"],["市立新埔國小",1,"板橋區"],["市立板橋國小",1,"板橋區"],["市立江翠國小",1,"板橋區"],["市立沙崙國小",1,"板橋區"],["市立海山國小",1,"板橋區"],["市立溪洲國小",1,"板橋區"],["市立莒光國小",1,"板橋區"],["市立重慶國小",1,"板橋區"],["市立南勢國小",1,"林口區"],["市立嘉寶國小",1,"林口區"],["市立新林國小",1,"林口區"],["市立東湖國小",1,"林口區"],["市立林口國小",1,"林口區"],["市立瑞平國小",1,"林口區"],["市立興福國小",1,"林口區"],["市立頭湖國小",1,"林口區"],["市立麗園國小",1,"林口區"],["市立麗林國小",1,"林口區"],["市立三多國小",1,"樹林區"],["市立大同國小",1,"樹林區"],["市立山佳國小",1,"樹林區"],["市立彭福國小",1,"樹林區"],["市立文林國小",1,"樹林區"],["市立柑園國小",1,"樹林區"],["市立桃子腳國(中)小",1,"樹林區"],["市立樹林國小",1,"樹林區"],["市立武林國小",1,"樹林區"],["市立育德國小",1,"樹林區"],["市立育林國小",1,"樹林區"],["市立永和國小",1,"永和區"],["市立永平國小",1,"永和區"],["市立秀朗國小",1,"永和區"],["市立網溪國小",1,"永和區"],["市立頂溪國小",1,"永和區"],["私立及人國小",1,"永和區"],["私立竹林國小",1,"永和區"],["私立育才國小",1,"永和區"],["市立保長國小",1,"汐止區"],["市立北峰國小",1,"汐止區"],["市立北港國小",1,"汐止區"],["市立崇德國小",1,"汐止區"],["市立東山國小",1,"汐止區"],["市立樟樹國小",1,"汐止區"],["市立汐止國小",1,"汐止區"],["市立白雲國小",1,"汐止區"],["市立秀峰國小",1,"汐止區"],["市立金龍國小",1,"汐止區"],["市立長安國小",1,"汐止區"],["市立青山國(中)小",1,"汐止區"],["市立同榮國小",1,"泰山區"],["市立明志國小",1,"泰山區"],["市立泰山國小",1,"泰山區"],["市立義學國小",1,"泰山區"],["市立中泰國小",1,"淡水區"],["市立坪頂國小",1,"淡水區"],["市立天生國小",1,"淡水區"],["市立屯山國小",1,"淡水區"],["市立忠山實驗小學",1,"淡水區"],["市立文化國小",1,"淡水區"],["市立新市國小",1,"淡水區"],["市立新興國小",1,"淡水區"],["市立水源國小",1,"淡水區"],["市立淡水國小",1,"淡水區"],["市立淡海國小",1,"淡水區"],["市立竹圍國小",1,"淡水區"],["市立育英國小",1,"淡水區"],["市立興仁國小",1,"淡水區"],["市立鄧公國小",1,"淡水區"],["市立深坑國小",1,"深坑區"],["市立德拉楠民族實驗小學",1,"烏來區"],["市立烏來國(中)小",1,"烏來區"],["私立種籽親子實小",1,"烏來區"],["市立九份國小",1,"瑞芳區"],["市立吉慶國小",1,"瑞芳區"],["市立濂洞國小",1,"瑞芳區"],["市立猴硐-蒙特梭利實小",1,"瑞芳區"],["市立瑞亭國小",1,"瑞芳區"],["市立瑞柑國小",1,"瑞芳區"],["市立瑞濱國小",1,"瑞芳區"],["市立瑞芳國小",1,"瑞芳區"],["市立瓜山國小",1,"瑞芳區"],["市立義方國小",1,"瑞芳區"],["市立鼻頭國小",1,"瑞芳區"],["市立和平國小",1,"石碇區"],["市立永定國小",1,"石碇區"],["市立石碇國小",1,"石碇區"],["市立雲海國小",1,"石碇區"],["市立乾華國小",1,"石門區"],["市立石門國小",1,"石門區"],["市立老梅實驗小學",1,"石門區"],["市立大坪國小",1,"萬里區"],["市立大鵬國小",1,"萬里區"],["市立崁腳國小",1,"萬里區"],["市立萬里國小",1,"萬里區"],["市立野柳國小",1,"萬里區"],["市立仁愛國小",1,"蘆洲區"],["市立忠義國小",1,"蘆洲區"],["市立成功國小",1,"蘆洲區"],["市立蘆洲國小",1,"蘆洲區"],["市立鷺江國小",1,"蘆洲區"],["市立和美國小",1,"貢寮區"],["市立澳底國小",1,"貢寮區"],["市立福連國小",1,"貢寮區"],["市立福隆國小",1,"貢寮區"],["市立貢寮國小",1,"貢寮區"],["市立三和國小",1,"金山區"],["市立中角國小",1,"金山區"],["市立金山國小",1,"金山區"],["市立金美國小",1,"金山區"],["市立上林國小",1,"雙溪區"],["市立柑林國小",1,"雙溪區"],["市立牡丹國小",1,"雙溪區"],["市立雙溪國小",1,"雙溪區"],["市立中湖國小",1,"鶯歌區"],["市立二橋國小",1,"鶯歌區"],["市立建國國小",1,"鶯歌區"],["市立昌福國小",1,"鶯歌區"],["市立永吉國小",1,"鶯歌區"],["市立鳳鳴國小",1,"鶯歌區"],["市立鶯歌國小",1,"鶯歌區"],["市立七堵國小",2,"七堵區"],["市立五堵國小",2,"七堵區"],["市立堵南國小",2,"七堵區"],["市立尚仁國小",2,"七堵區"],["市立復興國小",2,"七堵區"],["市立瑪陵國小",2,"七堵區"],["市立華興國小",2,"七堵區"],["市立長興國小",2,"七堵區"],["市立中和國小",2,"中山區"],["市立中山國小",2,"中山區"],["市立中華國小",2,"中山區"],["市立仙洞國小",2,"中山區"],["市立德和國小",2,"中山區"],["市立港西國小",2,"中山區"],["市立中正國小",2,"中正區"],["市立八斗國小",2,"中正區"],["市立和平國小",2,"中正區"],["市立忠孝國小",2,"中正區"],["市立正濱國小",2,"中正區"],["市立仁愛國小",2,"仁愛區"],["市立信義國小",2,"仁愛區"],["市立南榮國小",2,"仁愛區"],["市立成功國小",2,"仁愛區"],["市立中興國小",2,"信義區"],["市立東信國小",2,"信義區"],["市立東光國小",2,"信義區"],["市立深澳國小",2,"信義區"],["市立深美國小",2,"信義區"],["市立安樂國小",2,"安樂區"],["市立建德國小",2,"安樂區"],["市立武崙國小",2,"安樂區"],["市立西定國小",2,"安樂區"],["市立長樂國小",2,"安樂區"],["市立隆聖國小",2,"安樂區"],["市立八堵國小",2,"暖暖區"],["市立暖暖國小",2,"暖暖區"],["市立暖江國小",2,"暖暖區"],["市立暖西國小",2,"暖暖區"],["市立碇內國小",2,"暖暖區"],["市立中原國小",3,"中壢區"],["市立中壢國小",3,"中壢區"],["市立中平國小",3,"中壢區"],["市立中正國小",3,"中壢區"],["市立信義國小",3,"中壢區"],["市立元生國小",3,"中壢區"],["市立內壢國小",3,"中壢區"],["市立內定國小",3,"中壢區"],["市立大崙國小",3,"中壢區"],["市立富台國小",3,"中壢區"],["市立山東國小",3,"中壢區"],["市立忠福國小",3,"中壢區"],["市立新明國小",3,"中壢區"],["市立新街國小",3,"中壢區"],["市立普仁國小",3,"中壢區"],["市立林森國小",3,"中壢區"],["市立自立國小",3,"中壢區"],["市立興仁國小",3,"中壢區"],["市立興國國小",3,"中壢區"],["市立芭里國小",3,"中壢區"],["市立華勛國小",3,"中壢區"],["市立青園國小",3,"中壢區"],["市立青埔國小",3,"中壢區"],["市立龍岡國小",3,"中壢區"],["私立有得國(中)小",3,"中壢區"],["市立仁德國小",3,"八德區"],["市立八德國小",3,"八德區"],["市立大勇國小",3,"八德區"],["市立大安國小",3,"八德區"],["市立大忠國小",3,"八德區"],["市立大成國小",3,"八德區"],["市立廣興國小",3,"八德區"],["市立瑞豐國小",3,"八德區"],["市立茄苳國小",3,"八德區"],["市立霄裡國小",3,"八德區"],["市立五權國小",3,"大園區"],["市立內海國小",3,"大園區"],["市立埔心國小",3,"大園區"],["市立大園國小",3,"大園區"],["市立溪海國小",3,"大園區"],["市立潮音國小",3,"大園區"],["市立竹圍國小",3,"大園區"],["市立菓林國小",3,"大園區"],["市立中興國小",3,"大溪區"],["市立仁和國小",3,"大溪區"],["市立仁善國小",3,"大溪區"],["市立僑愛國小",3,"大溪區"],["市立內柵國小",3,"大溪區"],["市立南興國小",3,"大溪區"],["市立員樹林國小",3,"大溪區"],["市立大溪國小",3,"大溪區"],["市立永福國小",3,"大溪區"],["市立瑞祥國小",3,"大溪區"],["市立田心國小",3,"大溪區"],["市立百吉國小",3,"大溪區"],["市立福安國小",3,"大溪區"],["市立美華國小",3,"大溪區"],["市立北勢國小",3,"平鎮"],["市立南勢國小",3,"平鎮"],["市立宋屋國小",3,"平鎮"],["市立山豐國小",3,"平鎮"],["市立平興國小",3,"平鎮"],["市立復旦國小",3,"平鎮"],["市立忠貞國小",3,"平鎮"],["市立文化國小",3,"平鎮"],["市立新勢國小",3,"平鎮"],["市立新榮國小",3,"平鎮"],["市立東勢國小",3,"平鎮"],["市立東安國小",3,"平鎮"],["市立祥安國小",3,"平鎮"],["市立義興國小",3,"平鎮"],["市立三光國小",3,"復興區"],["市立三民國小",3,"復興區"],["市立介壽國小",3,"復興區"],["市立光華國小",3,"復興區"],["市立奎輝國小",3,"復興區"],["市立巴崚國小",3,"復興區"],["市立羅浮國小",3,"復興區"],["市立義盛國小",3,"復興區"],["市立長興國小",3,"復興區"],["市立霞雲國小",3,"復興區"],["市立高義國小",3,"復興區"],["市立北湖國小",3,"新屋區"],["市立啟文國小",3,"新屋區"],["市立埔頂國小",3,"新屋區"],["市立大坡國小",3,"新屋區"],["市立新屋國小",3,"新屋區"],["市立東明國小",3,"新屋區"],["市立永安國小",3,"新屋區"],["市立社子國小",3,"新屋區"],["市立笨港國小",3,"新屋區"],["市立蚵間國小",3,"新屋區"],["市立頭洲國小",3,"新屋區"],["市立中埔國小",3,"桃園區"],["市立中山國小",3,"桃園區"],["市立北門國小",3,"桃園區"],["市立南門國小",3,"桃園區"],["市立同安國小",3,"桃園區"],["市立同德國小",3,"桃園區"],["市立大有國小",3,"桃園區"],["市立大業國小",3,"桃園區"],["市立建國國小",3,"桃園區"],["市立建德國小",3,"桃園區"],["市立快樂國小",3,"桃園區"],["市立慈文國小",3,"桃園區"],["市立成功國小",3,"桃園區"],["市立文山國小",3,"桃園區"],["市立新埔國小",3,"桃園區"],["市立會稽國小",3,"桃園區"],["市立東門國小",3,"桃園區"],["市立桃園國小",3,"桃園區"],["市立永順國小",3,"桃園區"],["市立莊敬國小",3,"桃園區"],["市立西門國小",3,"桃園區"],["市立青溪國小",3,"桃園區"],["市立龍山國小",3,"桃園區"],["私立康萊爾國(中)小",3,"桃園區"],["市立上湖國小",3,"楊梅區"],["市立上田國小",3,"楊梅區"],["市立四維國小",3,"楊梅區"],["市立大同國小",3,"楊梅區"],["市立富岡國小",3,"楊梅區"],["市立楊光國(中)小",3,"楊梅區"],["市立楊心國小",3,"楊梅區"],["市立楊明國小",3,"楊梅區"],["市立楊梅國小",3,"楊梅區"],["市立水美國小",3,"楊梅區"],["市立瑞原國小",3,"楊梅區"],["市立瑞埔國小",3,"楊梅區"],["市立瑞塘國小",3,"楊梅區"],["市立瑞梅國小",3,"楊梅區"],["市立高榮國小",3,"楊梅區"],["市立光明國小",3,"蘆竹區"],["市立公埔國小",3,"蘆竹區"],["市立南崁國小",3,"蘆竹區"],["市立外社國小",3,"蘆竹區"],["市立大竹國小",3,"蘆竹區"],["市立大華國小",3,"蘆竹區"],["市立山腳國小",3,"蘆竹區"],["市立新興國小",3,"蘆竹區"],["市立新莊國小",3,"蘆竹區"],["市立海湖國小",3,"蘆竹區"],["市立蘆竹國小",3,"蘆竹區"],["市立錦興國小",3,"蘆竹區"],["市立頂社國小",3,"蘆竹區"],["市立龍安國小",3,"蘆竹區"],["市立上大國小",3,"觀音區"],["市立保生國小",3,"觀音區"],["市立大潭國小",3,"觀音區"],["市立富林國小",3,"觀音區"],["市立崙坪國小",3,"觀音區"],["市立新坡國小",3,"觀音區"],["市立樹林國小",3,"觀音區"],["市立育仁國小",3,"觀音區"],["市立草漯國小",3,"觀音區"],["市立觀音國小",3,"觀音區"],["市立三和國小",3,"龍潭區"],["市立三坑國小",3,"龍潭區"],["市立德龍國小",3,"龍潭區"],["市立武漢國小",3,"龍潭區"],["市立潛龍國小",3,"龍潭區"],["市立石門國小",3,"龍潭區"],["市立雙龍國小",3,"龍潭區"],["市立高原國小",3,"龍潭區"],["市立龍星國小",3,"龍潭區"],["市立龍源國小",3,"龍潭區"],["市立龍潭國小",3,"龍潭區"],["私立福祿貝爾國小",3,"龍潭區"],["私立諾瓦國小",3,"龍潭區"],["市立南美國小",3,"龜山區"],["市立壽山國小",3,"龜山區"],["市立大坑國小",3,"龜山區"],["市立大埔國小",3,"龜山區"],["市立大崗國小",3,"龜山區"],["市立大湖國小",3,"龜山區"],["市立山頂國小",3,"龜山區"],["市立幸福國小",3,"龜山區"],["市立文欣國小",3,"龜山區"],["市立文華國小",3,"龜山區"],["市立文青國(中)小",3,"龜山區"],["市立新路國小",3,"龜山區"],["市立楓樹國小",3,"龜山區"],["市立樂善國小",3,"龜山區"],["市立福源國小",3,"龜山區"],["市立自強國小",3,"龜山區"],["市立迴龍國(中)小",3,"龜山區"],["市立長庚國小",3,"龜山區"],["市立龍壽國小",3,"龜山區"],["市立龜山國小",3,"龜山區"],["國立清華大學附小",4,"北區"],["市立北門國小",4,"北區"],["市立南寮國小",4,"北區"],["市立民富國小",4,"北區"],["市立舊社國小",4,"北區"],["市立西門國小",4,"北區"],["市立載熙國小",4,"北區"],["市立三民國小",4,"東區"],["市立建功國小",4,"東區"],["市立新竹國小",4,"東區"],["市立東園國小",4,"東區"],["市立東門國小",4,"東區"],["市立水源國小",4,"東區"],["市立科園國小",4,"東區"],["市立竹蓮國小",4,"東區"],["市立關埔國小",4,"東區"],["市立關東國小",4,"東區"],["市立陽光國小",4,"東區"],["市立青草湖國小",4,"東區"],["市立高峰國小",4,"東區"],["市立龍山國小",4,"東區"],["私立新竹市康橋國(中)小",4,"東區"],["私立曙光國小",4,"東區"],["市立內湖國小",4,"香山區"],["市立南隘國小",4,"香山區"],["市立大庄國小",4,"香山區"],["市立大湖國小",4,"香山區"],["市立朝山國小",4,"香山區"],["市立港南國小",4,"香山區"],["市立茄苳國小",4,"香山區"],["市立華德福實驗國(中)小",4,"香山區"],["市立虎林國小",4,"香山區"],["市立頂埔國小",4,"香山區"],["市立香山國小",4,"香山區"],["縣立五峰國小",5,"五峰鄉"],["縣立桃山國小",5,"五峰鄉"],["縣立花園國小",5,"五峰鄉"],["縣立北埔國小",5,"北埔鄉"],["縣立大坪國小",5,"北埔鄉"],["縣立寶山國小",5,"寶山鄉"],["縣立新城國小",5,"寶山鄉"],["縣立雙溪國小",5,"寶山鄉"],["縣立嘉興國小",5,"尖石鄉"],["縣立尖石國小",5,"尖石鄉"],["縣立新光國小",5,"尖石鄉"],["縣立新樂國小",5,"尖石鄉"],["縣立梅花國小",5,"尖石鄉"],["縣立玉峰國小",5,"尖石鄉"],["縣立石磊國小",5,"尖石鄉"],["縣立秀巒國小",5,"尖石鄉"],["縣立錦屏國小",5,"尖石鄉"],["縣立富興國小",5,"峨眉鄉"],["縣立峨眉國小",5,"峨眉鄉"],["縣立北平華德福實驗學校(國小)",5,"新埔鎮"],["縣立寶石國小",5,"新埔鎮"],["縣立文山國小",5,"新埔鎮"],["縣立新埔國小",5,"新埔鎮"],["縣立新星國小",5,"新埔鎮"],["縣立枋寮國小",5,"新埔鎮"],["縣立清水國小",5,"新埔鎮"],["縣立照東國小",5,"新埔鎮"],["縣立照門國小",5,"新埔鎮"],["縣立埔和國小",5,"新豐鄉"],["縣立山崎國小",5,"新豐鄉"],["縣立新豐國小",5,"新豐鄉"],["縣立松林國小",5,"新豐鄉"],["縣立瑞興國小",5,"新豐鄉"],["縣立福興國小",5,"新豐鄉"],["縣立福龍國小",5,"新豐鄉"],["縣立內灣國小",5,"橫山鄉"],["縣立大肚國小",5,"橫山鄉"],["縣立橫山國小",5,"橫山鄉"],["縣立沙坑國小",5,"橫山鄉"],["縣立田寮國小",5,"橫山鄉"],["縣立中興國小",5,"湖口鄉"],["縣立信勢國小",5,"湖口鄉"],["縣立和興國小",5,"湖口鄉"],["縣立新湖國小",5,"湖口鄉"],["縣立湖口國小",5,"湖口鄉"],["縣立華興國小",5,"湖口鄉"],["縣立長安國小",5,"湖口鄉"],["私立康乃薾國(中)小",5,"竹北市"],["縣立中正國小",5,"竹北市"],["縣立光明國小",5,"竹北市"],["縣立六家國小",5,"竹北市"],["縣立十興國小",5,"竹北市"],["縣立博愛國小",5,"竹北市"],["縣立嘉豐國小",5,"竹北市"],["縣立安興國小",5,"竹北市"],["縣立文興國小",5,"竹北市"],["縣立新港國小",5,"竹北市"],["縣立新社國小",5,"竹北市"],["縣立東海國小",5,"竹北市"],["縣立東興國小",5,"竹北市"],["縣立竹仁國小",5,"竹北市"],["縣立竹北國小",5,"竹北市"],["縣立興隆國小",5,"竹北市"],["縣立豐田國小",5,"竹北市"],["縣立鳳岡國小",5,"竹北市"],["縣立麻園國小",5,"竹北市"],["私立上智國小",5,"竹東鎮"],["縣立上舘國小",5,"竹東鎮"],["縣立中山國小",5,"竹東鎮"],["縣立二重國小",5,"竹東鎮"],["縣立員崠國小",5,"竹東鎮"],["縣立大同國小",5,"竹東鎮"],["縣立瑞峰國小",5,"竹東鎮"],["縣立竹中國小",5,"竹東鎮"],["縣立竹東國小",5,"竹東鎮"],["縣立陸豐國小",5,"竹東鎮"],["縣立五龍國小",5,"芎林鄉"],["縣立碧潭國小",5,"芎林鄉"],["縣立芎林國小",5,"芎林鄉"],["縣立南和國小",5,"關西鎮"],["縣立坪林國小",5,"關西鎮"],["縣立太平國小",5,"關西鎮"],["縣立東光國小",5,"關西鎮"],["縣立東安國小",5,"關西鎮"],["縣立玉山國小",5,"關西鎮"],["縣立石光國小",5,"關西鎮"],["縣立錦山國小",5,"關西鎮"],["縣立關西國小",5,"關西鎮"],["縣立三星國小",6,"三星鄉"],["縣立大洲國小",6,"三星鄉"],["縣立大隱國小",6,"三星鄉"],["縣立憲明國小",6,"三星鄉"],["縣立萬富國小",6,"三星鄉"],["縣立中興國小",6,"五結鄉"],["縣立五結國小",6,"五結鄉"],["縣立利澤國小",6,"五結鄉"],["縣立孝威國小",6,"五結鄉"],["縣立學進國小",6,"五結鄉"],["縣立冬山國小",6,"冬山鄉"],["縣立大進國小",6,"冬山鄉"],["縣立廣興國小",6,"冬山鄉"],["縣立東興國小",6,"冬山鄉"],["縣立柯林國小",6,"冬山鄉"],["縣立武淵國小",6,"冬山鄉"],["縣立清溝國小",6,"冬山鄉"],["縣立順安國小",6,"冬山鄉"],["縣立南澳國小",6,"南澳鄉"],["縣立東澳國小",6,"南澳鄉"],["縣立武塔國小",6,"南澳鄉"],["縣立澳花國小",6,"南澳鄉"],["縣立碧候國小",6,"南澳鄉"],["縣立金岳國小",6,"南澳鄉"],["縣立金洋國小",6,"南澳鄉"],["縣立七賢國小",6,"員山鄉"],["縣立內城國(中)小",6,"員山鄉"],["縣立同樂國小",6,"員山鄉"],["縣立員山國小",6,"員山鄉"],["縣立大湖國小",6,"員山鄉"],["縣立深溝國小",6,"員山鄉"],["縣立湖山國小",6,"員山鄉"],["縣立公館國小",6,"壯圍鄉"],["縣立古亭國小",6,"壯圍鄉"],["縣立壯圍國小",6,"壯圍鄉"],["縣立大福國小",6,"壯圍鄉"],["縣立新南國小",6,"壯圍鄉"],["縣立過嶺國小",6,"壯圍鄉"],["縣立南山國小",6,"大同鄉"],["縣立四季國小",6,"大同鄉"],["縣立大同國小",6,"大同鄉"],["縣立寒溪國小",6,"大同鄉"],["縣立中山國小",6,"宜蘭市"],["縣立光復國小",6,"宜蘭市"],["縣立凱旋國小",6,"宜蘭市"],["縣立力行國小",6,"宜蘭市"],["縣立南屏國小",6,"宜蘭市"],["縣立宜蘭國小",6,"宜蘭市"],["縣立新生國小",6,"宜蘭市"],["縣立育才國小",6,"宜蘭市"],["縣立黎明國小",6,"宜蘭市"],["縣立三民國小",6,"礁溪鄉"],["縣立四結國小",6,"礁溪鄉"],["縣立玉田國小",6,"礁溪鄉"],["縣立礁溪國小",6,"礁溪鄉"],["縣立龍潭國小",6,"礁溪鄉"],["縣立公正國小",6,"羅東鎮"],["縣立北成國小",6,"羅東鎮"],["縣立成功國小",6,"羅東鎮"],["縣立竹林國小",6,"羅東鎮"],["縣立羅東國小",6,"羅東鎮"],["縣立南安國小",6,"蘇澳鎮"],["縣立士敏國小",6,"蘇澳鎮"],["縣立岳明國(中)小",6,"蘇澳鎮"],["縣立永樂國小",6,"蘇澳鎮"],["縣立育英國小",6,"蘇澳鎮"],["縣立蓬萊國小",6,"蘇澳鎮"],["縣立蘇澳國小",6,"蘇澳鎮"],["縣立馬賽國小",6,"蘇澳鎮"],["縣立二城國小",6,"頭城鎮"],["縣立人文國(中)小",6,"頭城鎮"],["縣立大溪國小",6,"頭城鎮"],["縣立大里國小",6,"頭城鎮"],["縣立梗枋國小",6,"頭城鎮"],["縣立竹安國小",6,"頭城鎮"],["縣立頭城國小",6,"頭城鎮"]],"國中":[["市立五常國中",0,"中山區"],["市立北安國中",0,"中山區"],["市立新興國中",0,"中山區"],["市立濱江實驗國中",0,"中山區"],["市立長安國中",0,"中山區"],["市立中正國中",0,"中正區"],["市立南門國中",0,"中正區"],["市立古亭國中",0,"中正區"],["市立弘道國中",0,"中正區"],["市立螢橋國中",0,"中正區"],["市立信義國中",0,"信義區"],["市立永吉國中",0,"信義區"],["市立瑠公國中",0,"信義區"],["市立興雅國中",0,"信義區"],["市立三民國中",0,"內湖區"],["市立內湖國中",0,"內湖區"],["市立明湖國中",0,"內湖區"],["市立東湖國中",0,"內湖區"],["市立西湖實驗國中",0,"內湖區"],["市立麗山國中",0,"內湖區"],["市立北投國中",0,"北投區"],["市立新民國中",0,"北投區"],["市立明德國中",0,"北投區"],["市立桃源國中",0,"北投區"],["市立石牌國中",0,"北投區"],["市立關渡國中",0,"北投區"],["市立成德國中",0,"南港區"],["市立誠正國中",0,"南港區"],["市立士林國中",0,"士林區"],["市立天母國中",0,"士林區"],["市立格致國中",0,"士林區"],["市立福安國中",0,"士林區"],["市立至善國中",0,"士林區"],["市立蘭雅國中",0,"士林區"],["市立建成國中",0,"大同區"],["市立忠孝國中",0,"大同區"],["市立民權國中",0,"大同區"],["市立蘭州國中",0,"大同區"],["市立重慶國中",0,"大同區"],["市立仁愛國中",0,"大安區"],["市立大安國中",0,"大安區"],["市立懷生國中",0,"大安區"],["市立民族實驗國中",0,"大安區"],["市立金華國中",0,"大安區"],["市立龍門國中",0,"大安區"],["私立立人國中(小)",0,"大安區"],["市立北政國中",0,"文山區"],["市立實踐國中",0,"文山區"],["市立景美國中",0,"文山區"],["市立景興國中",0,"文山區"],["市立木柵國中",0,"文山區"],["市立興福國中",0,"文山區"],["市立中山國中",0,"松山區"],["市立介壽國中",0,"松山區"],["市立敦化國中",0,"松山區"],["市立民生國中",0,"松山區"],["市立萬華國中",0,"萬華區"],["市立雙園國中",0,"萬華區"],["市立龍山國中",0,"萬華區"],["市立三峽國中",1,"三峽區"],["市立安溪國中",1,"三峽區"],["市立三芝國中",1,"三芝區"],["市立三和國中",1,"三重區"],["市立二重國中",1,"三重區"],["市立光榮國中",1,"三重區"],["市立明志國中",1,"三重區"],["市立碧華國中",1,"三重區"],["市立中和國中",1,"中和區"],["市立漳和國中",1,"中和區"],["市立積穗國中",1,"中和區"],["市立自強國中",1,"中和區"],["市立五股國中",1,"五股區"],["市立八里國中",1,"八里區"],["市立中正國中",1,"土城區"],["市立土城國中",1,"土城區"],["市立坪林實驗國中",1,"坪林區"],["市立平溪國中",1,"平溪區"],["市立五峰國中",1,"新店區"],["市立文山國中",1,"新店區"],["市立達觀國中(小)",1,"新店區"],["市立中平國中",1,"新莊區"],["市立新泰國中",1,"新莊區"],["市立新莊國中",1,"新莊區"],["市立福營國中",1,"新莊區"],["市立頭前國中",1,"新莊區"],["市立中山國中",1,"板橋區"],["市立大觀國中",1,"板橋區"],["市立忠孝國中",1,"板橋區"],["市立新埔國中",1,"板橋區"],["市立板橋國中",1,"板橋區"],["市立江翠國中",1,"板橋區"],["市立溪崑國中",1,"板橋區"],["市立重慶國中",1,"板橋區"],["市立佳林國中",1,"林口區"],["市立崇林國中",1,"林口區"],["市立林口國中",1,"林口區"],["市立三多國中",1,"樹林區"],["市立柑園國中",1,"樹林區"],["市立桃子腳國中(小)",1,"樹林區"],["市立育林國中",1,"樹林區"],["市立永和國中",1,"永和區"],["市立福和國中",1,"永和區"],["市立汐止國中",1,"汐止區"],["市立青山國中(小)",1,"汐止區"],["市立泰山國中",1,"泰山區"],["市立義學國中",1,"泰山區"],["市立正德國中",1,"淡水區"],["市立淡水國中",1,"淡水區"],["市立深坑國中",1,"深坑區"],["市立烏來國中(小)",1,"烏來區"],["市立欽賢國中",1,"瑞芳區"],["市立瑞芳國中",1,"瑞芳區"],["市立石門實驗國中",1,"石門區"],["市立萬里國中",1,"萬里區"],["市立蘆洲國中",1,"蘆洲區"],["市立鷺江國中",1,"蘆洲區"],["市立貢寮實驗國中",1,"貢寮區"],["市立尖山國中",1,"鶯歌區"],["市立鳳鳴國中",1,"鶯歌區"],["市立鶯歌國中",1,"鶯歌區"],["市立明德國中",2,"七堵區"],["市立百福國中",2,"七堵區"],["市立中正國中",2,"中正區"],["市立正濱國中",2,"中正區"],["市立南榮國中",2,"仁愛區"],["市立銘傳國中",2,"仁愛區"],["市立信義國中",2,"信義區"],["市立成功國中",2,"信義區"],["市立建德國中",2,"安樂區"],["市立武崙國中",2,"安樂區"],["市立碇內國中",2,"暖暖區"],["市立內壢國中",3,"中壢區"],["市立大崙國中",3,"中壢區"],["市立新明國中",3,"中壢區"],["市立東興國中",3,"中壢區"],["市立自強國中",3,"中壢區"],["市立興南國中",3,"中壢區"],["市立過嶺國中",3,"中壢區"],["市立青埔國中",3,"中壢區"],["市立龍岡國中",3,"中壢區"],["市立龍興國中",3,"中壢區"],["私立有得國中(小)",3,"中壢區"],["市立八德國中",3,"八德區"],["市立大成國中",3,"八德區"],["市立大園國中",3,"大園區"],["市立竹圍國中",3,"大園區"],["市立仁和國中",3,"大溪區"],["市立大溪國中",3,"大溪區"],["市立中壢國中",3,"平鎮"],["市立平南國中",3,"平鎮"],["市立平興國中",3,"平鎮"],["市立平鎮國中",3,"平鎮"],["市立東安國中",3,"平鎮"],["市立大坡國中",3,"新屋區"],["市立永安國中",3,"新屋區"],["市立中興國中",3,"桃園區"],["市立同德國中",3,"桃園區"],["市立大有國中",3,"桃園區"],["市立建國國中",3,"桃園區"],["市立慈文國中",3,"桃園區"],["市立文昌國中",3,"桃園區"],["市立會稽國中",3,"桃園區"],["市立桃園國中",3,"桃園區"],["市立福豐國中",3,"桃園區"],["市立經國國中",3,"桃園區"],["市立青溪國中",3,"桃園區"],["私立康萊爾國中(小)",3,"桃園區"],["市立仁美國中",3,"楊梅區"],["市立富岡國中",3,"楊梅區"],["市立楊光國中(小)",3,"楊梅區"],["市立楊明國中",3,"楊梅區"],["市立楊梅國中",3,"楊梅區"],["市立瑞原國中",3,"楊梅區"],["市立瑞坪國中",3,"楊梅區"],["市立光明國中",3,"蘆竹區"],["市立南崁國中",3,"蘆竹區"],["市立大竹國中",3,"蘆竹區"],["市立山腳國中",3,"蘆竹區"],["市立草漯國中",3,"觀音區"],["市立觀音國中",3,"觀音區"],["市立凌雲國中",3,"龍潭區"],["市立武漢國中",3,"龍潭區"],["市立石門國中",3,"龍潭區"],["市立龍潭國中",3,"龍潭區"],["市立大崗國中",3,"龜山區"],["市立幸福國中",3,"龜山區"],["市立迴龍國中(小)",3,"龜山區"],["市立龜山國中",3,"龜山區"],["市立光華國中",4,"北區"],["市立南華國中",4,"北區"],["市立竹光國中",4,"北區"],["市立三民國中",4,"東區"],["市立光武國中",4,"東區"],["市立培英國中",4,"東區"],["市立建華國中",4,"東區"],["市立新科國中",4,"東區"],["市立育賢國中",4,"東區"],["私立新竹市康橋國中(小)",4,"東區"],["市立內湖國中",4,"香山區"],["市立富禮國中",4,"香山區"],["市立華德福實驗國中(小)",4,"香山區"],["市立虎林國中",4,"香山區"],["縣立五峰國中",5,"五峰鄉"],["縣立北埔國中",5,"北埔鄉"],["縣立寶山國中",5,"寶山鄉"],["縣立尖石國中",5,"尖石鄉"],["縣立峨眉國中",5,"峨眉鄉"],["縣立北平華德福實驗學校(國中)",5,"新埔鎮"],["縣立新埔國中",5,"新埔鎮"],["縣立照門國中",5,"新埔鎮"],["縣立忠孝國中",5,"新豐鄉"],["縣立新豐國中",5,"新豐鄉"],["縣立精華國中",5,"新豐鄉"],["縣立橫山國中",5,"橫山鄉"],["縣立華山國中",5,"橫山鄉"],["縣立中正國中",5,"湖口鄉"],["縣立新湖國中",5,"湖口鄉"],["私立康乃薾國中(小)",5,"竹北市"],["縣立仁愛國中",5,"竹北市"],["縣立勝利國中",5,"竹北市"],["縣立博愛國中",5,"竹北市"],["縣立成功國中",5,"竹北市"],["縣立文興國中",5,"竹北市"],["縣立東興國中",5,"竹北市"],["縣立竹北國中",5,"竹北市"],["縣立鳳岡國中",5,"竹北市"],["縣立二重國中",5,"竹東鎮"],["縣立員東國中",5,"竹東鎮"],["縣立竹東國中",5,"竹東鎮"],["縣立自強國中",5,"竹東鎮"],["縣立芎林國中",5,"芎林鄉"],["縣立富光國中",5,"關西鎮"],["縣立石光國中",5,"關西鎮"],["縣立關西國中",5,"關西鎮"],["縣立三星國中",6,"三星鄉"],["縣立五結國中",6,"五結鄉"],["縣立利澤國中",6,"五結鄉"],["縣立興中國中",6,"五結鄉"],["縣立冬山國中",6,"冬山鄉"],["縣立順安國中",6,"冬山鄉"],["縣立內城國中(小)",6,"員山鄉"],["縣立員山國中",6,"員山鄉"],["縣立壯圍國中",6,"壯圍鄉"],["縣立大同國中",6,"大同鄉"],["縣立中華國中",6,"宜蘭市"],["縣立凱旋國中",6,"宜蘭市"],["縣立宜蘭國中",6,"宜蘭市"],["縣立復興國中",6,"宜蘭市"],["縣立吳沙國中",6,"礁溪鄉"],["縣立礁溪國中",6,"礁溪鄉"],["縣立國華國中",6,"羅東鎮"],["縣立東光國中",6,"羅東鎮"],["縣立羅東國中",6,"羅東鎮"],["縣立南安國中",6,"蘇澳鎮"],["縣立岳明國中(小)",6,"蘇澳鎮"],["縣立文化國中",6,"蘇澳鎮"],["縣立蘇澳國中",6,"蘇澳鎮"],["縣立人文國中(小)",6,"頭城鎮"],["縣立頭城國中",6,"頭城鎮"]],"高中職":[["市立中山女中",0,"中山區"],["市立大同高中",0,"中山區"],["市立大直高中",0,"中山區"],["私立大同高中",0,"中山區"],["私立稻江護家",0,"中山區"],["市立北一女中",0,"中正區"],["市立建國中學",0,"中正區"],["市立成功中學",0,"中正區"],["臺北市新民高中",0,"中正區"],["臺北市開南高中",0,"中正區"],["市立松山家商",0,"信義區"],["市立松山工農",0,"信義區"],["市立松山高中",0,"信義區"],["市立永春高中",0,"信義區"],["私立協和祐德高中",0,"信義區"],["私立喬治工商",0,"信義區"],["市立內湖高中",0,"內湖區"],["市立內湖高工",0,"內湖區"],["市立南湖高中",0,"內湖區"],["市立麗山高中",0,"內湖區"],["私立達人高中",0,"內湖區"],["市立中正高中",0,"北投區"],["市立復興高中",0,"北投區"],["私立奎山實驗高級中學",0,"北投區"],["私立惇敍工商",0,"北投區"],["私立薇閣高中",0,"北投區"],["臺北市幼華高中",0,"北投區"],["市立南港高中",0,"南港區"],["市立南港高工",0,"南港區"],["市立育成高中",0,"南港區"],["市立士林高商",0,"士林區"],["市立百齡高中",0,"士林區"],["市立陽明高中",0,"士林區"],["私立泰北高中",0,"士林區"],["私立華岡藝校",0,"士林區"],["私立華興中學",0,"士林區"],["私立衛理女中",0,"士林區"],["市立成淵高中",0,"大同區"],["市立明倫高中",0,"大同區"],["私立稻江高商",0,"大同區"],["私立靜修高中",0,"大同區"],["國立師大附中",0,"大安區"],["市立和平高中",0,"大安區"],["市立大安高工",0,"大安區"],["市立芳和實中",0,"大安區"],["私立延平中學",0,"大安區"],["私立復興實驗高中",0,"大安區"],["私立東方工商",0,"大安區"],["私立金甌女中",0,"大安區"],["私立開平餐飲",0,"大安區"],["國立政大附中",0,"文山區"],["市立景美女中",0,"文山區"],["市立木柵高工",0,"文山區"],["市立萬芳高中",0,"文山區"],["私立再興中學",0,"文山區"],["私立大誠高中",0,"文山區"],["私立景文高中",0,"文山區"],["私立東山高中",0,"文山區"],["私立滬江高中",0,"文山區"],["私立靜心高中",0,"文山區"],["臺北市數位實驗高中",0,"文山區"],["市立中崙高中",0,"松山區"],["市立西松高中",0,"松山區"],["私立育達高中",0,"松山區"],["市立大理高中",0,"萬華區"],["市立華江高中",0,"萬華區"],["市立北大高級中學",1,"三峽區"],["市立明德高中",1,"三峽區"],["財團法人辭修高中",1,"三峽區"],["市立三重商工",1,"三重區"],["市立三重高中",1,"三重區"],["市立新北高中",1,"三重區"],["私立東海高中",1,"三重區"],["私立格致高中",1,"三重區"],["私立穀保家商",1,"三重區"],["私立金陵女中",1,"三重區"],["市立中和高中",1,"中和區"],["市立錦和高中",1,"中和區"],["私立竹林高中",1,"中和區"],["財團法人南山高中",1,"中和區"],["私立聖心女中",1,"八里區"],["市立新北高工",1,"土城區"],["市立清水高中",1,"土城區"],["新北市福瑞斯特高中",1,"土城區"],["新北市裕德高級中等學校",1,"土城區"],["市立安康高中",1,"新店區"],["市立新店高中",1,"新店區"],["新北市崇光高中",1,"新店區"],["私立中信高中",1,"新店區"],["私立南強工商",1,"新店區"],["私立康橋高中",1,"新店區"],["私立能仁家商",1,"新店區"],["私立莊敬工家",1,"新店區"],["市立丹鳳高中",1,"新莊區"],["市立新莊高中",1,"新莊區"],["財團法人恆毅高中",1,"新莊區"],["國立華僑高級中等學校",1,"板橋區"],["市立光復高中",1,"板橋區"],["市立板橋高中",1,"板橋區"],["市立海山高中",1,"板橋區"],["私立光仁高中",1,"板橋區"],["私立豫章工商",1,"板橋區"],["市立林口高中",1,"林口區"],["新北市林口康橋國際高中",1,"林口區"],["私立醒吾高中",1,"林口區"],["市立樹林高中",1,"樹林區"],["私立樹人家商",1,"樹林區"],["市立永平高中",1,"永和區"],["私立復興商工",1,"永和區"],["私立智光商工",1,"永和區"],["市立樟樹國際實中",1,"汐止區"],["市立秀峰高中",1,"汐止區"],["私立崇義高中",1,"汐止區"],["市立泰山高中",1,"泰山區"],["市立淡水商工",1,"淡水區"],["市立竹圍高中",1,"淡水區"],["私立淡江高中",1,"淡水區"],["市立瑞芳高工",1,"瑞芳區"],["私立時雨高中",1,"瑞芳區"],["市立石碇高中",1,"石碇區"],["私立中華商海",1,"萬里區"],["市立三民高中",1,"蘆洲區"],["私立徐匯高中",1,"蘆洲區"],["市立豐珠中學",1,"貢寮區"],["市立金山高中",1,"金山區"],["市立雙溪高中",1,"雙溪區"],["市立鶯歌工商",1,"鶯歌區"],["國立基隆商工",2,"七堵區"],["市立中山高中",2,"中山區"],["輔大聖心高中",2,"中山區"],["國立海洋大學附屬基隆海事",2,"中正區"],["市立八斗高中",2,"中正區"],["私立二信高中",2,"中正區"],["國立基隆女中",2,"信義區"],["私立光隆家商",2,"信義區"],["私立培德工家",2,"信義區"],["市立安樂高中",2,"安樂區"],["國立基隆高中",2,"暖暖區"],["市立暖暖高中",2,"暖暖區"],["國立中央大學附屬中壢高中",3,"中壢區"],["市立中壢家商",3,"中壢區"],["市立中壢高商",3,"中壢區"],["市立內壢高中",3,"中壢區"],["桃園市啟英高中",3,"中壢區"],["市立永豐高中",3,"八德區"],["桃園市新興高中",3,"八德區"],["市立大園國際高中",3,"大園區"],["桃園市大興高中",3,"大園區"],["市立大溪高中",3,"大溪區"],["私立至善高中",3,"大溪區"],["市立平鎮高中",3,"平鎮"],["桃園市復旦高中",3,"平鎮"],["桃園市育達高中",3,"平鎮"],["私立六和高中",3,"平鎮"],["市立羅浮高中",3,"復興區"],["市立新屋高中",3,"新屋區"],["桃園市清華高中",3,"新屋區"],["國立北科大附屬桃園農工",3,"桃園區"],["市立桃園高中",3,"桃園區"],["市立武陵高中",3,"桃園區"],["市立陽明高中",3,"桃園區"],["桃園市振聲高中",3,"桃園區"],["市立楊梅高中",3,"楊梅區"],["桃園市治平高中",3,"楊梅區"],["私立大華高中",3,"楊梅區"],["私立永平工商",3,"楊梅區"],["市立南崁高中",3,"蘆竹區"],["市立觀音高中",3,"觀音區"],["市立龍潭高中",3,"龍潭區"],["桃園市路亞國際高中",3,"龍潭區"],["私立方曙商工",3,"龍潭區"],["市立壽山高中",3,"龜山區"],["桃園市世紀綠能工商",3,"龜山區"],["私立光啟高中",3,"龜山區"],["市立成德高中",4,"北區"],["私立磐石高中",4,"北區"],["國立新竹女中",4,"東區"],["國立新竹高中",4,"東區"],["國立新竹高商",4,"東區"],["國立新竹高工",4,"東區"],["國立竹科實驗高級中等學校",4,"東區"],["市立建功高中",4,"東區"],["私立世界高中",4,"東區"],["私立光復高中",4,"東區"],["私立曙光女中",4,"東區"],["市立香山高中",4,"香山區"],["新竹市數位實驗高中",4,"香山區"],["私立內思高工",5,"新埔鎮"],["私立仰德高中",5,"新豐鄉"],["私立忠信高中",5,"新豐鄉"],["縣立湖口高中",5,"湖口鄉"],["國立陽明交大附中",5,"竹北市"],["私立義民高中",5,"竹北市"],["縣立六家高級中學",5,"竹北市"],["國立竹東高中",5,"竹東鎮"],["私立東泰高中",5,"竹東鎮"],["國立關西高中",5,"關西鎮"],["國立羅東高工",6,"冬山鄉"],["縣立慈心華德福實中",6,"冬山鄉"],["縣立南澳高中",6,"南澳鄉"],["私立慧燈高中",6,"員山鄉"],["私立中道高中",6,"壯圍鄉"],["國立宜蘭高中",6,"宜蘭市"],["國立宜蘭高商",6,"宜蘭市"],["國立蘭陽女中",6,"宜蘭市"],["國立羅東高中",6,"羅東鎮"],["國立羅東高商",6,"羅東鎮"],["國立蘇澳海事",6,"蘇澳鎮"],["國立頭城家商",6,"頭城鎮"]],"大專院校":[["大同大學",0,"中山區"],["實踐大學",0,"中山區"],["國立臺北商業大學",0,"中正區"],["臺北市立大學",0,"中正區"],["臺北醫學大學",0,"信義區"],["國立臺灣戲曲學院",0,"內湖區"],["康寧大學",0,"內湖區"],["德明財經科技大學",0,"內湖區"],["國立臺北藝術大學",0,"北投區"],["國立臺北護理健康大學",0,"北投區"],["臺北城市科技大學",0,"北投區"],["馬偕醫護管理專科學校",0,"北投區"],["中華科技大學",0,"南港區"],["中國文化大學",0,"士林區"],["東吳大學",0,"士林區"],["銘傳大學",0,"士林區"],["國立臺北教育大學",0,"大安區"],["國立臺北科技大學",0,"大安區"],["國立臺灣大學",0,"大安區"],["國立臺灣師範大學",0,"大安區"],["國立臺灣科技大學",0,"大安區"],["世新大學",0,"文山區"],["中國科技大學",0,"文山區"],["國立政治大學",0,"文山區"],["國立臺北大學",1,"三峽區"],["馬偕醫學院",1,"三芝區"],["華夏科技大學",1,"中和區"],["宏國德霖科技大學",1,"土城區"],["景文科技大學",1,"新店區"],["耕莘健康管理專科學校",1,"新店區"],["輔仁大學",1,"新莊區"],["亞東科技大學",1,"板橋區"],["國立臺灣藝術大學",1,"板橋區"],["致理科技大學",1,"板橋區"],["醒吾科技大學",1,"林口區"],["明志科技大學",1,"泰山區"],["黎明技術學院",1,"泰山區"],["台北海洋科技大學",1,"淡水區"],["淡江大學",1,"淡水區"],["真理大學",1,"淡水區"],["聖約翰科技大學",1,"淡水區"],["東南科技大學",1,"深坑區"],["華梵大學",1,"石碇區"],["法鼓文理學院",1,"金山區"],["德育護理健康學院",2,"中山區"],["國立臺灣海洋大學",2,"中正區"],["崇右影藝科技大學",2,"信義區"],["中原大學",3,"中壢區"],["健行科技大學",3,"中壢區"],["元智大學",3,"中壢區"],["南亞技術學院",3,"中壢區"],["國立中央大學",3,"中壢區"],["萬能科技大學",3,"中壢區"],["開南大學",3,"蘆竹區"],["新生醫護管理專科學校",3,"龍潭區"],["國立體育大學",3,"龜山區"],["長庚大學",3,"龜山區"],["長庚科技大學",3,"龜山區"],["龍華科技大學",3,"龜山區"],["國立清華大學",4,"東區"],["國立陽明交通大學",4,"東區"],["中華大學",4,"香山區"],["元培醫事科技大學",4,"香山區"],["玄奘大學",4,"香山區"],["明新科技大學",5,"新豐鄉"],["敏實科技大學",5,"芎林鄉"],["聖母醫護管理專科學校",6,"三星鄉"],["國立宜蘭大學",6,"宜蘭市"],["佛光大學",6,"礁溪鄉"]]}};
+
+/* ================= State ================= */
+const $=s=>document.querySelector(s);
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const state={user:null,name:'',inst:null,entry:null,family:null,model:null,config:{},services:[],repairs:{},photos:Array(6).fill(null)};
+function renderServices(){
+ $('#svc').innerHTML=SERVICES.map(v=>`<button type="button" class="svc-opt" data-v="${v}" aria-pressed="${state.services.includes(v)}"><span class="box"></span>${v}</button>`).join('');
+ const n=state.services.length;$('#svcCount').textContent=n?`已選 ${n} 項`:'可複選';$('#svcCount').classList.toggle('hot',n>0);
+}
+document.addEventListener('click',e=>{const b=e.target.closest('.svc-opt');if(!b)return;const v=b.dataset.v,i=state.services.indexOf(v);i>=0?state.services.splice(i,1):state.services.push(v);state.services.sort((a,b)=>SERVICES.indexOf(a)-SERVICES.indexOf(b));renderServices()});
+let draft=null, sheetPart=null;
+// Browser storage may be blocked (private mode, previews); fall back to memory for this session.
+const memStore={};
+const store={
+ get(k,d){try{const v=localStorage.getItem(k);if(v)return JSON.parse(v)}catch(e){}return k in memStore?memStore[k]:d},
+ set(k,v){memStore[k]=v;try{localStorage.setItem(k,JSON.stringify(v));return true}catch(e){return false}}
+};
+
+function toast(t){const el=$('#toast');el.textContent=t;el.hidden=false;clearTimeout(toast._t);toast._t=setTimeout(()=>el.hidden=true,2600)}
+
+/* ================= Google 登入與 Google Drive =================
+   純前端：權杖只存在瀏覽器記憶體；資料存在登入者自己的 Google Drive。
+   drive.file 範圍只能存取本 App 建立的檔案。 */
+const CLIENT_ID='475317204587-d101b197ptgvmtskmrahpolcv8nubkei.apps.googleusercontent.com';
+const SCOPE_DRIVE='https://www.googleapis.com/auth/drive.file';
+const SCOPES='openid email profile '+SCOPE_DRIVE;
+const APP_FOLDER='樂器維護紀錄',DB_FILE='records.json';
+const DRIVE='https://www.googleapis.com/drive/v3/files',UPLOAD='https://www.googleapis.com/upload/drive/v3/files';
+const auth={token:null,exp:0,client:null,waiters:[]};
+const DB={folder:null,photos:null,file:null,records:[]};
+const photoCache={};
+
+function loginError(t){const e=$('#loginErr');e.textContent=t;e.hidden=!t;setBusy(false)}
+function setBusy(on,label){const b=$('#gBtn');b.disabled=on;$('#gBtnTxt').textContent=on?(label||'連線中…'):lastEmail()?`以 ${lastEmail()} 繼續`:'使用 Google 帳號登入'}
+function lastEmail(){return store.get('mi-last','')}
+function gisReady(){return new Promise((res,rej)=>{let n=0;const t=()=>{if(window.google&&google.accounts&&google.accounts.oauth2)return res();if(++n>150)return rej(new Error('gis'));setTimeout(t,100)};t()})}
+async function initAuth(){
+ try{await gisReady()}catch(e){loginError('無法載入 Google 登入元件。請確認網路連線，或關閉會阻擋 Google 的擴充功能後重新整理。');return}
+ auth.client=google.accounts.oauth2.initTokenClient({client_id:CLIENT_ID,scope:SCOPES,callback:onToken,error_callback:onTokenError});
+ setBusy(false);
+}
+function onToken(resp){
+ if(resp.error){onTokenError({type:resp.error});return}
+ if(!google.accounts.oauth2.hasGrantedAllScopes(resp,SCOPE_DRIVE)){
+  auth.waiters.splice(0).forEach(w=>w.rej(new Error('scope')));
+  loginError('需要允許「查看、編輯及刪除這個應用程式建立的 Google 雲端硬碟檔案」，才能把紀錄存進你的 Google Drive。請再按一次登入，並勾選這項權限。');return}
+ auth.token=resp.access_token;auth.exp=Date.now()+(Number(resp.expires_in||3600)-120)*1000;
+ $('#reauth').hidden=true;
+ auth.waiters.splice(0).forEach(w=>w.res(auth.token));
+ if(!state.user)afterLogin();
+}
+function onTokenError(err){
+ auth.waiters.splice(0).forEach(w=>w.rej(new Error('auth')));
+ if(state.user)return;
+ const t=err&&err.type;
+ loginError(t==='popup_closed'?'登入視窗已關閉，請再按一次登入。':t==='popup_failed_to_open'?'瀏覽器擋住了登入視窗。請允許這個網站開啟彈出式視窗後再試一次。':t==='access_denied'?'沒有完成授權。這個帳號可能不在測試使用者名單上，請聯絡管理員。':'登入沒有完成，請再試一次。');
+}
+$('#gBtn').addEventListener('click',()=>{
+ if(!auth.client)return;
+ loginError('');setBusy(true);
+ const hint=lastEmail();
+ auth.client.requestAccessToken(hint?{prompt:'',login_hint:hint}:{prompt:'select_account'});
+});
+$('#otherAcct').addEventListener('click',()=>{if(!auth.client)return;loginError('');setBusy(true);auth.client.requestAccessToken({prompt:'select_account'})});
+// The access token lasts about an hour; when it runs out, ask for one tap to reconnect (popups need a user gesture).
+function ensureToken(){
+ if(auth.token&&Date.now()<auth.exp)return Promise.resolve(auth.token);
+ return new Promise((res,rej)=>{auth.waiters.push({res,rej});$('#reauth').hidden=false});
+}
+$('#reauthBtn').addEventListener('click',()=>auth.client.requestAccessToken({prompt:'',login_hint:state.user||lastEmail()}));
+async function gfetch(url,opts={},retry=true){
+ const token=await ensureToken();
+ const r=await fetch(url,{...opts,headers:{...(opts.headers||{}),Authorization:'Bearer '+token}});
+ if(r.status===401&&retry){auth.exp=0;return gfetch(url,opts,false)}
+ return r;
+}
+async function driveErr(r,what){let m='';try{m=(await r.json()).error.message}catch(e){}return new Error(`${what}失敗（${r.status}${m?'：'+m:''}）`)}
+const qs=s=>s.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
+async function findOne(q){
+ const r=await gfetch(`${DRIVE}?q=${encodeURIComponent(q)}&fields=files(id,name)&spaces=drive&pageSize=1&orderBy=createdTime`);
+ if(!r.ok)throw await driveErr(r,'讀取 Google Drive');
+ return (await r.json()).files[0]||null;
+}
+async function createFolder(name,parent){
+ const r=await gfetch(DRIVE+'?fields=id',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name,mimeType:'application/vnd.google-apps.folder',...(parent?{parents:[parent]}:{})})});
+ if(!r.ok)throw await driveErr(r,'建立資料夾');
+ return (await r.json()).id;
+}
+async function upload(meta,blob,fileId){
+ const b='mi'+Math.random().toString(36).slice(2);
+ const body=new Blob([`--${b}\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n${JSON.stringify(meta)}\r\n--${b}\r\nContent-Type: ${blob.type||'application/octet-stream'}\r\n\r\n`,blob,`\r\n--${b}--`]);
+ const r=await gfetch(`${UPLOAD}${fileId?'/'+fileId:''}?uploadType=multipart&fields=id`,{method:fileId?'PATCH':'POST',headers:{'Content-Type':`multipart/related; boundary=${b}`},body});
+ if(!r.ok)throw await driveErr(r,'上傳');
+ return (await r.json()).id;
+}
+async function readDB(){
+ const r=await gfetch(`${DRIVE}/${DB.file}?alt=media`);
+ if(!r.ok)throw await driveErr(r,'讀取紀錄');
+ try{const j=await r.json();return Array.isArray(j.records)?j.records:[]}catch(e){return []}
+}
+async function loadDB(){
+ const folderQ=(n,p)=>`name='${qs(n)}' and mimeType='application/vnd.google-apps.folder' and trashed=false${p?` and '${p}' in parents`:''}`;
+ DB.folder=(await findOne(folderQ(APP_FOLDER)))?.id||await createFolder(APP_FOLDER);
+ DB.photos=(await findOne(folderQ('photos',DB.folder)))?.id||await createFolder('photos',DB.folder);
+ const f=await findOne(`name='${DB_FILE}' and '${DB.folder}' in parents and trashed=false`);
+ if(f){DB.file=f.id;DB.records=await readDB()}
+ else{DB.records=[];DB.file=await upload({name:DB_FILE,parents:[DB.folder],mimeType:'application/json'},dbBlob())}
+}
+function dbBlob(){return new Blob([JSON.stringify({app:'樂器維護紀錄表',version:1,records:DB.records})],{type:'application/json'})}
+// Re-read before writing so a record saved from another device is never overwritten.
+async function saveRecordToDrive(rec){
+ const latest=await readDB(),map=new Map(latest.map(x=>[x.id,x]));
+ map.set(rec.id,rec);
+ DB.records=[...map.values()].sort((a,b)=>b.date.localeCompare(a.date));
+ await upload({mimeType:'application/json'},dbBlob(),DB.file);
+}
+async function compressPhoto(file){
+ let img;try{img=await createImageBitmap(file)}catch(e){return file}
+ const s=Math.min(1,1600/Math.max(img.width,img.height)),c=document.createElement('canvas');
+ c.width=Math.round(img.width*s);c.height=Math.round(img.height*s);
+ c.getContext('2d').drawImage(img,0,0,c.width,c.height);
+ return new Promise(res=>c.toBlob(b=>res(b||file),'image/jpeg',.85));
+}
+function getPhotoUrl(fid){
+ if(!photoCache[fid])photoCache[fid]=gfetch(`${DRIVE}/${fid}?alt=media`).then(async r=>{if(!r.ok)throw await driveErr(r,'讀取照片');return URL.createObjectURL(await r.blob())}).catch(e=>{delete photoCache[fid];throw e});
+ return photoCache[fid];
+}
+function hydrate(root){
+ return Promise.all([...root.querySelectorAll('img[data-fid]')].map(img=>getPhotoUrl(img.dataset.fid).then(u=>{img.src=u}).catch(()=>{img.alt='照片無法載入';img.parentElement.classList.add('ph-err')})));
+}
+function imgTag(u,k){return u.startsWith('fid:')?`<img data-fid="${esc(u.slice(4))}" alt="照片 ${k+1}">`:`<img src="${u}" alt="照片 ${k+1}">`}
+
+async function afterLogin(){
+ setBusy(true,'確認帳號…');
+ try{
+  const u=await (await gfetch('https://www.googleapis.com/oauth2/v3/userinfo')).json();
+  const email=(u.email||'').toLowerCase();
+  if(!(await isAllowed(email))){
+   try{google.accounts.oauth2.revoke(auth.token,()=>{})}catch(e){}
+   auth.token=null;auth.exp=0;
+   loginError(`${email||'這個帳號'} 沒有使用權限。請聯絡管理員把這個帳號加入授權名單，或改用其他帳號登入。`);return}
+  state.user=email;state.name=u.name||email.split('@')[0];state.picture=u.picture||'';
+  store.set('mi-last',email);
+  setBusy(true,'讀取 Google Drive…');
+  await loadDB();
+  enterApp();
+ }catch(e){
+  state.user=null;
+  loginError(`無法連接 Google Drive。${e.message||''} 請確認網路連線，以及 Google Cloud 專案已啟用 Google Drive API。`);
+ }
+}
+function enterApp(){
+ $('#login').hidden=true;$('#app').hidden=false;
+ $('#staffName').textContent=state.name;$('#menuEmail').textContent=`${state.name}（${state.user}）`;
+ const ava=$('#avaTxt');
+ if(state.picture){ava.innerHTML=`<img src="${esc(state.picture)}" alt="" referrerpolicy="no-referrer">`}else ava.textContent=state.name[0].toUpperCase();
+ setBusy(false);renderRecords();
+}
+$('#acctBtn').addEventListener('click',()=>{$('#menu').hidden=!$('#menu').hidden});
+document.addEventListener('click',e=>{if(!e.target.closest('.acct'))$('#menu').hidden=true});
+$('#logoutBtn').addEventListener('click',()=>{
+ try{if(auth.token)google.accounts.oauth2.revoke(auth.token,()=>{})}catch(e){}
+ auth.token=null;auth.exp=0;state.user=null;DB.records=[];
+ for(const k of Object.keys(photoCache))delete photoCache[k];
+ $('#menu').hidden=true;$('#app').hidden=true;$('#login').hidden=false;setBusy(false);
+});
+$('#driveLink').addEventListener('click',e=>{if(DB.folder)e.currentTarget.href=`https://drive.google.com/drive/folders/${DB.folder}`});
+
+/* ================= Tabs & version ================= */
+document.querySelectorAll('.tabs button').forEach(b=>b.addEventListener('click',()=>showView(b.dataset.view)));
+function showView(v){
+ document.querySelectorAll('.tabs button').forEach(b=>b.toggleAttribute('aria-current',b.dataset.view===v));
+ document.querySelectorAll('.tabs button[aria-current]').forEach(b=>b.setAttribute('aria-current','page'));
+ $('#view-new').hidden=v!=='new';$('#view-list').hidden=v!=='list';
+ if(v==='list')renderRecords();
+ window.scrollTo(0,0);
+}
+$('#verBtn').textContent=VERSIONS[0].v;
+$('#verBtn').addEventListener('click',()=>{
+ $('#vlog').innerHTML=VERSIONS.map(v=>`<article><h3><span class="ver">${esc(v.v)}</span><span class="mono" style="font-size:13px;color:var(--muted)">${esc(v.date)}</span></h3><ul>${v.items.map(i=>`<li>${esc(i)}</li>`).join('')}</ul></article>`).join('');
+ $('#verModal').hidden=false;$('#backdrop').hidden=false;
+});
+$('#verX').addEventListener('click',closeOverlays);
+
+/* ================= Date ================= */
+function todayStr(){const d=new Date();return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`}
+function weekdayOf(s){const [y,m,d]=s.split('-').map(Number);if(!y)return '－';return WEEK[new Date(y,m-1,d).getDay()]}
+const dateEl=$('#date');
+dateEl.value=todayStr();
+const syncWeek=()=>$('#weekday').textContent='星期'+weekdayOf(dateEl.value);
+dateEl.addEventListener('change',syncWeek);dateEl.addEventListener('input',syncWeek);syncWeek();
+
+/* ================= Cascading selects ================= */
+const selCat=$('#selCat'),selFam=$('#selFam'),selInst=$('#selInst');
+const opts=(arr,ph)=>`<option value="">${ph}</option>`+arr.map(([v,t])=>`<option value="${esc(v)}">${esc(t)}</option>`).join('');
+selCat.innerHTML=opts(Object.keys(CATALOG).map(k=>[k,k]),'請選擇分類');
+selFam.innerHTML=opts([],'先選分類');selInst.innerHTML=opts([],'先選類別');
+selCat.addEventListener('change',()=>{
+ const fams=selCat.value?Object.keys(CATALOG[selCat.value]):[];
+ selFam.innerHTML=opts(fams.map(f=>[f,f]),fams.length?'請選擇類別':'先選分類');selFam.disabled=!fams.length;
+ selInst.innerHTML=opts([],'先選類別');selInst.disabled=true;setInstrument(null);
+});
+selFam.addEventListener('change',()=>{
+ const list=selFam.value?CATALOG[selCat.value][selFam.value]:[];
+ selInst.innerHTML=opts(list.map(i=>[i.id,i.name]),list.length?'請選擇樂器':'先選類別');selInst.disabled=!list.length;setInstrument(null);
+});
+selInst.addEventListener('change',()=>{
+ const entry=selInst.value?CATALOG[selCat.value][selFam.value].find(i=>i.id===selInst.value):null;
+ setInstrument(entry);
+});
+function setInstrument(entry){
+ if(Object.keys(state.repairs).length&&entry!==state.entry)toast('已切換樂器，先前標記的部位已清除');
+ state.entry=entry;state.family=entry?selFam.value:null;state.repairs={};state.model=null;
+ state.config=entry?configFor(entry.id,{}):{};
+ renderModelSelects();renderConfig();buildInst();
+}
+// Rebuild the drawing from the current configuration; keep marks whose parts still exist on the new drawing.
+function buildInst(){
+ const e=state.entry;
+ state.inst=e?e.make(state.config):null;
+ if(state.inst){const ids=new Set(state.inst.parts.map(p=>p.id));for(const k of Object.keys(state.repairs))if(!ids.has(k))delete state.repairs[k]}
+ renderDiagram();
+}
+// Picking a model resets the configuration to that model's factory defaults.
+function applyModelDefaults(){
+ state.config=configFor(state.entry.id,state.model&&!state.model.manual?state.model.o:{});
+ renderConfig();buildInst();
+}
+function renderConfig(){
+ const e=state.entry,ops=e?OPTS[e.id]||[]:[];
+ $('#cfgBox').hidden=!ops.length;
+ $('#cfgFields').innerHTML=ops.map(op=>`<div class="field"><label for="cfg-${op.k}">${esc(op.l)}</label><select id="cfg-${op.k}" data-k="${op.k}">${op.ch.map(([v,t])=>`<option value="${esc(v)}"${state.config[op.k]===v?' selected':''}>${esc(t)}</option>`).join('')}</select></div>`).join('');
+ $('#cfgHint').textContent=state.model&&!state.model.manual?`已帶入 ${state.model.name} 的出廠配置；若樂器有改裝（例如自行更換尾管），請直接修改。`:'請依實際樂器選擇；選了型號會自動帶入出廠配置。';
+}
+$('#cfgFields').addEventListener('change',e=>{const s=e.target.closest('select[data-k]');if(!s)return;state.config[s.dataset.k]=s.value;buildInst()});
+function configLabels(){
+ const ops=state.entry?OPTS[state.entry.id]||[]:[];
+ return ops.map(op=>`${op.l}：${(op.ch.find(([v])=>v===state.config[op.k])||[,''])[1]}`);
+}
+
+/* Model cascade: brand → grade → model, with manual entry fallback */
+const selBrand=$('#selBrand'),selGrade=$('#selGrade'),selModel=$('#selModel'),manualBox=$('#manualBox'),manualModel=$('#manualModel');
+const MANUAL='__manual__';
+function renderModelSelects(){
+ const e=state.entry;$('#modelBox').hidden=!e;manualBox.hidden=true;manualModel.value='';
+ if(!e)return;
+ const brands=Object.keys(MODELS[e.id]||{});
+ selBrand.innerHTML=opts([...brands.map(b=>[b,b]),[MANUAL,'其他廠牌（手動輸入）']],'請選擇廠牌');
+ selGrade.innerHTML=opts([],'先選廠牌');selGrade.disabled=true;
+ selModel.innerHTML=opts([],'先選等級');selModel.disabled=true;
+}
+selBrand.addEventListener('change',()=>{
+ const b=selBrand.value,data=(MODELS[state.entry.id]||{})[b];
+ selModel.innerHTML=opts([],'先選等級');selModel.disabled=true;
+ if(b===MANUAL){selGrade.innerHTML=opts([],'—');selGrade.disabled=true;showManual();return}
+ manualBox.hidden=true;
+ const gs=data?Object.keys(GRADES).filter(g=>data[g]):[];
+ selGrade.innerHTML=opts(gs.map(g=>[g,GRADES[g]]),gs.length?'請選擇等級':'先選廠牌');selGrade.disabled=!gs.length;
+ state.model=null;renderConfig();
+});
+selGrade.addEventListener('change',()=>{
+ const list=selGrade.value?MODELS[state.entry.id][selBrand.value][selGrade.value]:[];
+ selModel.innerHTML=opts([...list.map(m=>[m,m.split('|')[0]]),[MANUAL,'找不到型號，手動輸入']],list.length?'請選擇型號':'先選等級');selModel.disabled=!list.length;
+ manualBox.hidden=true;state.model=null;renderConfig();
+});
+selModel.addEventListener('change',()=>{
+ if(selModel.value===MANUAL){showManual();return}
+ manualBox.hidden=true;
+ state.model=selModel.value?{...parseModel(selModel.value),brand:selBrand.value,grade:GRADES[selGrade.value]}:null;
+ if(state.model)applyModelDefaults();else renderConfig();
+});
+function showManual(){
+ manualBox.hidden=false;
+ state.model={name:'',o:{},manual:true,brand:selBrand.value===MANUAL?'':selBrand.value,grade:selGrade.value?GRADES[selGrade.value]:''};
+ renderConfig();manualModel.focus();
+}
+manualModel.addEventListener('input',()=>{if(state.model&&state.model.manual)state.model.name=manualModel.value.trim()});
+
+/* ================= Customer ================= */
+const custType=$('#custType');
+custType.addEventListener('change',()=>{
+ $('#custGroup').hidden=custType.value!=='group';$('#custPerson').hidden=custType.value!=='person';$('#custSchool').hidden=custType.value!=='school';
+});
+const schLevel=$('#schLevel'),schCounty=$('#schCounty'),schDist=$('#schDist'),schName=$('#schName'),schSearch=$('#schSearch'),schResults=$('#schResults');
+const lvRows=()=>SCHOOLS.levels[schLevel.value]||[];
+function resetSchool(from){
+ if(from<=1){schCounty.innerHTML=opts([],'先選學制');schCounty.disabled=true}
+ if(from<=2){schDist.innerHTML=opts([],'先選縣市');schDist.disabled=true}
+ if(from<=3){schName.innerHTML=opts([],'先選區域');schName.disabled=true}
+}
+resetSchool(1);
+schLevel.addEventListener('change',()=>{
+ resetSchool(1);schSearch.value='';schResults.hidden=true;schSearch.disabled=!schLevel.value;
+ if(!schLevel.value)return;
+ const cs=[...new Set(lvRows().map(r=>r[1]))].sort((a,b)=>a-b);
+ schCounty.innerHTML=opts(cs.map(i=>[i,SCHOOLS.counties[i]]),'請選擇縣市');schCounty.disabled=false;
+});
+schCounty.addEventListener('change',()=>{
+ resetSchool(2);if(schCounty.value==='')return;
+ const ds=[...new Set(lvRows().filter(r=>r[1]==schCounty.value).map(r=>r[2]))];
+ schDist.innerHTML=opts(ds.map(d=>[d,d]),'請選擇區域');schDist.disabled=false;
+});
+schDist.addEventListener('change',()=>{
+ resetSchool(3);if(!schDist.value)return;
+ const ns=lvRows().filter(r=>r[1]==schCounty.value&&r[2]===schDist.value).map(r=>r[0]);
+ schName.innerHTML=opts(ns.map(n=>[n,n]),'請選擇學校');schName.disabled=false;
+});
+schSearch.addEventListener('input',()=>{
+ const q=schSearch.value.trim().replace(/台/g,'臺');
+ if(!q){schResults.hidden=true;return}
+ const hits=lvRows().filter(r=>r[0].includes(q)||(SCHOOLS.counties[r[1]]+r[2]).includes(q)).slice(0,30);
+ schResults.innerHTML=hits.length?hits.map(r=>`<button type="button" data-n="${esc(r[0])}" data-c="${r[1]}" data-d="${esc(r[2])}">${esc(r[0])}<small>${esc(SCHOOLS.counties[r[1]])} ${esc(r[2])}</small></button>`).join(''):'<p>找不到符合的學校。請換個關鍵字，或確認學制是否選對。</p>';
+ schResults.hidden=false;
+});
+schResults.addEventListener('click',e=>{
+ const b=e.target.closest('[data-n]');if(!b)return;
+ schCounty.value=b.dataset.c;schCounty.dispatchEvent(new Event('change'));
+ schDist.value=b.dataset.d;schDist.dispatchEvent(new Event('change'));
+ schName.value=b.dataset.n;schSearch.value='';schResults.hidden=true;
+ toast(`已帶入：${b.dataset.n}`);
+});
+document.addEventListener('click',e=>{if(!e.target.closest('.search'))schResults.hidden=true});
+function customerOf(){
+ const t=custType.value;
+ if(t==='group')return{type:'團體',name:$('#groupName').value.trim()};
+ if(t==='person')return{type:'個人',name:$('#personName').value.trim()};
+ if(t==='school')return{type:'學校',name:schName.value,level:schLevel.value,county:schCounty.value===''?'':SCHOOLS.counties[schCounty.value],dist:schDist.value};
+ return null;
+}
+
+/* ================= Diagram ================= */
+function shapeSvg(s){
+ switch(s.t){
+  case 'rect':return `<rect x="${s.x}" y="${s.y}" width="${s.w}" height="${s.h}" rx="${s.rx}"/>`;
+  case 'circle':return `<circle cx="${s.cx}" cy="${s.cy}" r="${s.r}"/>`;
+  case 'ellipse':return `<ellipse cx="${s.cx}" cy="${s.cy}" rx="${s.rx}" ry="${s.ry}"/>`;
+  case 'path':return `<path class="fill" d="${s.d}"/>`;
+  case 'tube':return `<path class="tube-o" d="${s.d}" stroke-width="${s.w+3}" stroke-linecap="round" stroke-linejoin="round"/><path class="tube" d="${s.d}" stroke-width="${s.w}" stroke-linecap="round" stroke-linejoin="round"/>`;
+ }return '';
+}
+function center(s){
+ if(s.t==='rect')return[s.x+s.w/2,s.y+s.h/2];
+ if(s.t==='circle'||s.t==='ellipse')return[s.cx,s.cy];
+ return null;
+}
+const isSel=id=>!!state.repairs[id];
+function renderDiagram(){
+ const inst=state.inst,box=$('#diagram');
+ $('#diaExtra').hidden=!inst;
+ if(!inst){box.innerHTML='<div class="diagram-empty">選好樂器後，這裡會出現零件圖。<br>點圖上的零件，就能選擇維修原因和方式。</div>';$('#diaTitle').textContent='維修部位';renderSummary();return}
+ $('#diaTitle').textContent=inst.name+' 維修部位';
+ const [w,h]=inst.vb;
+ const deco=(inst.deco||[]).map(s=>shapeSvg(s).replace(/<(\w+) /,'<$1 class="deco" ')).join('')
+  +(inst.holes||[]).map(s=>shapeSvg(s).replace(/<(\w+) /,'<$1 class="hole" ')).join('');
+ const body=inst.parts.map(p=>{
+  const c=p.tag?center(p.shapes[0]):null;
+  return `<g class="part${isSel(p.id)?' sel':''}" data-part="${p.id}" tabindex="0" role="button" aria-label="${esc(p.label)}"><title>${esc(p.label)}</title>${p.shapes.map(shapeSvg).join('')}${c?`<text class="tag" x="${c[0]}" y="${c[1]}">${esc(p.tag)}</text>`:''}</g>`;
+ }).join('');
+ // Keep keys tappable on phones: never render narrower than ~0.9px per unit; the box scrolls sideways instead.
+ const minW=Math.round(w*0.9);
+ box.innerHTML=`<div class="diagram-scroll" id="dscroll"><svg viewBox="0 0 ${w} ${h}" style="min-width:${minW}px" role="group" aria-label="${esc(inst.name)}零件圖">${body}${deco}</svg></div><p class="scroll-hint" id="shint" hidden>← 左右滑動查看完整樂器 →</p>`;
+ requestAnimationFrame(()=>{const sc=$('#dscroll');if(sc)$('#shint').hidden=sc.scrollWidth<=sc.clientWidth+2});
+ $('#partChips').innerHTML=inst.parts.map(p=>`<button type="button" class="pchip${isSel(p.id)?' sel':''}" data-part="${p.id}">${esc(p.label)}</button>`).join('');
+ renderSummary();
+}
+$('#diagram').addEventListener('click',e=>{const g=e.target.closest('[data-part]');if(g)openSheet(g.dataset.part)});
+$('#diagram').addEventListener('keydown',e=>{const g=e.target.closest('[data-part]');if(g&&(e.key==='Enter'||e.key===' ')){e.preventDefault();openSheet(g.dataset.part)}});
+$('#partChips').addEventListener('click',e=>{const b=e.target.closest('[data-part]');if(b)openSheet(b.dataset.part)});
+
+function flatRepairs(){
+ const out=[];if(!state.inst)return out;
+ for(const p of state.inst.parts){const rec=state.repairs[p.id];if(!rec)continue;
+  for(const [item,v] of Object.entries(rec))out.push({partId:p.id,part:p.label,item,r:v.r,m:v.m,note:v.note||''})}
+ return out;
+}
+function renderSummary(){
+ const n=Object.keys(state.repairs).length,el=$('#repCount');
+ el.textContent=n+' 處';el.classList.toggle('hot',n>0);
+ if(!state.inst){$('#summary').innerHTML='';return}
+ if(!n){$('#summary').innerHTML='<p class="none">還沒有標記。點圖上的零件，或打開上方的零件清單。</p>';return}
+ const byPart={};flatRepairs().forEach(r=>(byPart[r.partId]=byPart[r.partId]||{label:r.part,rows:[]}).rows.push(r));
+ $('#summary').innerHTML=Object.entries(byPart).map(([id,o])=>`<button type="button" class="sum-item" data-part="${id}"><b>${esc(o.label)}</b>${o.rows.map(r=>`<span class="sum-line"><strong>${esc(r.item)}</strong>：${esc(r.r.join('、')||'—')} → ${esc(r.m.join('、')||'—')}${r.note?`（${esc(r.note)}）`:''}</span>`).join('')}</button>`).join('');
+}
+$('#summary').addEventListener('click',e=>{const b=e.target.closest('[data-part]');if(b)openSheet(b.dataset.part)});
+
+/* ================= Repair sheet ================= */
+function openSheet(id){
+ const p=state.inst.parts.find(x=>x.id===id);if(!p)return;
+ sheetPart=p;draft=JSON.parse(JSON.stringify(state.repairs[id]||{}));
+ $('#sheetEyebrow').textContent=state.inst.name;$('#sheetTitle').textContent=p.label;
+ const items=REPAIRS[p.kind]||REPAIRS.generic;
+ const chip=(k,v,on)=>`<button type="button" class="chip ${k}" data-k="${k}" data-v="${esc(v)}" aria-pressed="${on}">${esc(v)}</button>`;
+ $('#sheetBody').innerHTML=items.map((it,i)=>{
+  const d=draft[it.n]||{r:[],m:[],note:''};const on=d.r.length||d.m.length||d.note;
+  return `<div class="ri${on?' on':''}" data-item="${esc(it.n)}"><h3><span class="dot"></span>${esc(it.n)}</h3>
+   <p class="lbl">維修原因</p><div class="chips">${[...it.r,'其他'].map(v=>chip('r',v,d.r.includes(v))).join('')}</div>
+   <p class="lbl">維修方式</p><div class="chips">${[...it.m,'其他'].map(v=>chip('m',v,d.m.includes(v))).join('')}</div>
+   <input class="note" id="note-${p.id}-${i}" type="text" placeholder="補充說明（選填）" value="${esc(d.note)}"></div>`;
+ }).join('');
+ $('#sheet').hidden=false;$('#backdrop').hidden=false;$('#sheetBody').scrollTop=0;
+}
+function itemDraft(name){return draft[name]=draft[name]||{r:[],m:[],note:''}}
+function refreshItem(ri){const d=draft[ri.dataset.item];ri.classList.toggle('on',!!(d&&(d.r.length||d.m.length||d.note.trim())))}
+$('#sheetBody').addEventListener('click',e=>{
+ const c=e.target.closest('.chip');if(!c)return;
+ const ri=c.closest('.ri'),d=itemDraft(ri.dataset.item),arr=d[c.dataset.k],v=c.dataset.v,i=arr.indexOf(v);
+ i>=0?arr.splice(i,1):arr.push(v);c.setAttribute('aria-pressed',i<0);refreshItem(ri);
+});
+$('#sheetBody').addEventListener('input',e=>{if(!e.target.classList.contains('note'))return;const ri=e.target.closest('.ri');itemDraft(ri.dataset.item).note=e.target.value;refreshItem(ri)});
+$('#sheetOk').addEventListener('click',()=>{
+ for(const k of Object.keys(draft)){const d=draft[k];d.note=d.note.trim();if(!d.r.length&&!d.m.length&&!d.note)delete draft[k]}
+ if(Object.keys(draft).length)state.repairs[sheetPart.id]=draft;else delete state.repairs[sheetPart.id];
+ closeOverlays();renderDiagram();
+});
+$('#sheetClear').addEventListener('click',()=>{delete state.repairs[sheetPart.id];closeOverlays();renderDiagram()});
+$('#sheetX').addEventListener('click',closeOverlays);
+$('#backdrop').addEventListener('click',closeOverlays);
+document.addEventListener('keydown',e=>{if(e.key==='Escape')closeOverlays()});
+function closeOverlays(){$('#sheet').hidden=true;$('#verModal').hidden=true;$('#backdrop').hidden=true}
+
+/* ================= Photos ================= */
+function renderPhotos(){
+ $('#photos').innerHTML=state.photos.map((ph,i)=>`<div class="ph">
+  <div class="ph-box${ph?' has':''}"><span class="ph-num">${i+1}</span>
+   ${ph?`<img src="${ph.url}" alt="照片 ${i+1}"><button type="button" class="ph-del" data-del="${i}">移除</button>`
+       :`<span>＋ 拍照或選擇照片</span><input type="file" accept="image/*" id="photo-${i}" data-i="${i}" aria-label="上傳照片 ${i+1}">`}
+  </div>
+  <textarea id="cap-${i}" data-cap="${i}" placeholder="照片說明" ${ph?'':'disabled'}>${esc(ph?.caption||'')}</textarea></div>`).join('');
+ $('#photoCount').textContent=`${state.photos.filter(Boolean).length} / 6`;
+}
+$('#photos').addEventListener('change',e=>{
+ const inp=e.target;if(inp.type!=='file'||!inp.files[0])return;
+ state.photos[+inp.dataset.i]={url:URL.createObjectURL(inp.files[0]),file:inp.files[0],name:inp.files[0].name,caption:''};renderPhotos();
+});
+$('#photos').addEventListener('click',e=>{const b=e.target.closest('[data-del]');if(!b)return;const i=+b.dataset.del;URL.revokeObjectURL(state.photos[i].url);state.photos[i]=null;renderPhotos()});
+$('#photos').addEventListener('input',e=>{const t=e.target;if(t.dataset.cap!==undefined&&state.photos[+t.dataset.cap])state.photos[+t.dataset.cap].caption=t.value});
+
+/* ================= Save & records ================= */
+const ENTRY_BY_ID={};for(const fam of Object.values(CATALOG))for(const [f,list] of Object.entries(fam))for(const e of list)ENTRY_BY_ID[e.id]={...e,family:f};
+function cfgLabels(id,cfg){return(OPTS[id]||[]).map(op=>`${op.l}：${(op.ch.find(([v])=>v===cfg[op.k])||[,''])[1]}`)}
+$('#recForm').addEventListener('submit',async e=>{
+ e.preventDefault();const msg=$('#formMsg'),btn=$('#saveBtn');
+ if(btn.disabled)return;
+ if(!dateEl.value){msg.textContent='請選擇日期。';return}
+ if(!state.inst){msg.textContent='請先選擇樂器（分類 → 類別 → 樂器）。';selInst.disabled?selCat.focus():selInst.focus();return}
+ const reps=flatRepairs(),photos=state.photos.filter(Boolean);
+ if(!state.services.length&&!reps.length&&!photos.length){msg.textContent='請選擇此次維護項目、標記維修部位，或上傳照片。';return}
+ const cust=customerOf();
+ if(cust&&!cust.name){msg.textContent=cust.type==='學校'?'請選擇學校，或用搜尋帶入。':`請輸入${cust.type==='團體'?'團體名稱':'客人姓名'}。`;return}
+ const md=state.model?{brand:state.model.brand,grade:state.model.grade,name:state.model.name}:null;
+ if(md&&state.model.manual&&!md.name){msg.textContent='請輸入型號，或改選清單中的型號。';manualModel.focus();return}
+ msg.textContent='';btn.disabled=true;
+ const id=Date.now().toString(36)+Math.random().toString(36).slice(2,6);
+ try{
+  const saved=[];
+  for(let k=0;k<photos.length;k++){
+   btn.textContent=`上傳照片 ${k+1}／${photos.length}…`;
+   const p=photos[k],blob=p.fileId?null:await compressPhoto(p.file);
+   const fid=p.fileId||await upload({name:`${dateEl.value}_${state.inst.name}_${id}_${k+1}.jpg`,parents:[DB.photos],mimeType:'image/jpeg'},blob);
+   p.fileId=fid;photoCache[fid]=Promise.resolve(p.url);
+   saved.push({caption:p.caption,fileId:fid});
+  }
+  btn.textContent='儲存紀錄…';
+  const rec={id,date:dateEl.value,instId:state.entry.id,family:state.family,inst:state.inst.name,assetNo:$('#assetNo').value.trim(),user:state.user,staff:state.name,
+   customer:cust,model:md,services:[...state.services],cfg:{...state.config},config:configLabels(),repairs:reps,photos:saved,notes:$('#notes').value.trim()};
+  await saveRecordToDrive(rec);
+  state.photos=Array(6).fill(null);
+  state.repairs={};state.services=[];renderServices();$('#assetNo').value='';$('#notes').value='';renderPhotos();renderDiagram();
+  toast('已儲存到 Google Drive');showView('list');
+ }catch(err){
+  msg.textContent=`儲存失敗：${err.message||'網路連線中斷'}。資料還在畫面上，請確認網路後再按一次「儲存紀錄」。`;
+ }finally{btn.disabled=false;btn.textContent='儲存紀錄'}
+});
+
+/* ---------- 範例資料：固定亂數種子，每次產生相同的 2025–2026 紀錄 ---------- */
+function rng(seed){return()=>{seed|=0;seed=seed+0x6D2B79F5|0;let t=Math.imul(seed^seed>>>15,1|seed);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
+let SAMPLES=null;
+function sampleRecords(){
+ if(SAMPLES)return SAMPLES;
+ const R0=rng(20261009),pick=a=>a[Math.floor(R0()*a.length)];
+ const W={flute:14,clarinet:14,asax:10,tsax:5,bsax:2,trumpet:12,trombone:7,horn:5,euph:5,tuba:3,oboe:3,bassoon:2,piccolo:3,snare:5,bassdrum:2,timpani:3,glock:2,xylo:2,cymbals:2};
+ const bag=Object.entries(W).flatMap(([k,n])=>Array(n).fill(k));
+ const groups=['新北市青年管樂團','桃園市民管樂團','基隆港都管樂團','臺北愛樂管樂團','宜蘭社區管樂團','竹北市民管樂團'];
+ const people=['陳同學','林小姐','黃先生','張同學','李老師','王同學','吳小姐'];
+ const caps=['維修前','維修後','更換零件特寫','墊片狀況','管身凹痕','調整後整體'];
+ const prefix={flute:'FL',piccolo:'PC',clarinet:'CL',oboe:'OB',bassoon:'BN',asax:'AS',tsax:'TS',bsax:'BS',trumpet:'TP',horn:'HN',trombone:'TB',euph:'EU',tuba:'TU',snare:'SD',bassdrum:'BD',timpani:'TI',glock:'GL',xylo:'XY',cymbals:'CY'};
+ const season=[1.3,1.1,0.8,0.9,0.8,1.0,1.6,1.7,1.2,0.9,1.0,1.1];
+ const today=new Date(),out=[];let n=0;
+ for(let y=2025;y<=today.getFullYear();y++)for(let mo=0;mo<12;mo++){
+  if(y===today.getFullYear()&&mo>today.getMonth())break;
+  const cnt=Math.round((6+R0()*6)*season[mo]);
+  for(let i=0;i<cnt;i++){
+   let day=1+Math.floor(R0()*28);if(y===today.getFullYear()&&mo===today.getMonth())day=Math.min(day,today.getDate());
+   const id=pick(bag),entry=ENTRY_BY_ID[id],brands=Object.keys(MODELS[id]);
+   const brand=R0()<.45?brands[0]:pick(brands),grades=Object.keys(MODELS[id][brand]),grade=pick(grades);
+   const pm=parseModel(pick(MODELS[id][brand][grade])),cfg=configFor(id,pm.o),inst=entry.make(cfg);
+   const parts=[...inst.parts].sort(()=>R0()-.5).slice(0,1+Math.floor(R0()*3));
+   const repairs=parts.map(p=>{const it=pick(REPAIRS[p.kind]||REPAIRS.generic);return{partId:p.id,part:p.label,item:it.n,r:[pick(it.r)],m:[pick(it.m)],note:R0()<.15?'已與客戶確認':''}});
+   const ct=R0();let customer;
+   if(ct<.65){const lv=pick(['國小','國小','國中','國中','高中職','大專院校']),s=pick(SCHOOLS.levels[lv]);customer={type:'學校',name:s[0],level:lv,county:SCHOOLS.counties[s[1]],dist:s[2]}}
+   else if(ct<.85)customer={type:'團體',name:pick(groups)};else customer={type:'個人',name:pick(people)};
+   const ms=repairs.flatMap(x=>x.m),services=[];
+   if(R0()<.7)services.push('清洗保養擦拭');
+   if(repairs.some(x=>x.item==='墊片'&&!x.m.some(t=>t.includes('更換'))))services.push('調整墊片');
+   if(ms.some(t=>!t.includes('更換')))services.push('維修零件');
+   if(ms.some(t=>t.includes('更換')))services.push('更換零件');
+   const np=Math.floor(R0()*7);
+   out.push({id:'s'+(n++),sample:true,date:`${y}-${String(mo+1).padStart(2,'0')}-${String(day).padStart(2,'0')}`,instId:id,family:entry.family,inst:entry.name,
+    assetNo:`${prefix[id]}-${String(1+Math.floor(R0()*99)).padStart(3,'0')}`,staff:'',customer,model:{brand,grade:GRADES[grade],name:pm.name},cfg,config:cfgLabels(id,cfg),
+    services,repairs,photos:Array.from({length:np},(_,k)=>({caption:caps[k]})),notes:R0()<.2?'建議半年後回廠保養。':''});
+  }
+ }
+ return SAMPLES=out;
+}
+function allRecords(){
+ const mine=DB.records;
+ const s=$('#showSample').checked?sampleRecords().map(r=>({...r,staff:r.staff||state.name})):[];
+ return [...mine,...s].sort((a,b)=>b.date.localeCompare(a.date));
+}
+
+/* ---------- Statistics view ---------- */
+const FAMS=[['木管','ww'],['銅管','br'],['打擊','pc']];
+const famKey=f=>(FAMS.find(x=>x[0]===f)||[,'ww'])[1];
+const ORDER=Object.keys(ENTRY_BY_ID);
+const stat={year:null,month:null,inst:null,group:'inst'};
+const tip=$('#tip');
+function showTip(e,html){tip.innerHTML=html;tip.hidden=false;const x=Math.min(e.clientX+14,innerWidth-tip.offsetWidth-8),y=Math.min(e.clientY+14,innerHeight-tip.offsetHeight-8);tip.style.left=x+'px';tip.style.top=y+'px'}
+const hideTip=()=>tip.hidden=true;
+
+function renderRecords(){
+ const recs=allRecords();
+ const years=[...new Set(recs.map(r=>+r.date.slice(0,4)))].sort((a,b)=>b-a);
+ if(!years.length)years.push(new Date().getFullYear());
+ if(!years.includes(stat.year))stat.year=years[0];
+ $('#statYear').innerHTML=years.map(y=>`<option value="${y}"${y===stat.year?' selected':''}>${y} 年</option>`).join('');
+ $('#statTitle').textContent=`${stat.year} 年維修統計`;
+ const yr=recs.filter(r=>+r.date.slice(0,4)===stat.year);
+ renderKpis(yr);renderRose(yr);renderMatrix(yr);renderDrill(yr,null);renderList(yr);
+}
+function renderKpis(yr){
+ const byM=Array(12).fill(0);yr.forEach(r=>byM[+r.date.slice(5,7)-1]++);
+ const peak=byM.indexOf(Math.max(...byM));
+ const byI={};yr.forEach(r=>byI[r.inst]=(byI[r.inst]||0)+1);
+ const top=Object.entries(byI).sort((a,b)=>b[1]-a[1])[0];
+ const parts=yr.reduce((s,r)=>s+r.repairs.length,0);
+ $('#kpis').innerHTML=`
+  <div class="kpi"><span>全年維修</span><b>${yr.length}</b><small>件樂器</small></div>
+  <div class="kpi"><span>維修部位</span><b>${parts}</b><small>處</small></div>
+  <div class="kpi"><span>最忙的月份</span><b>${yr.length?peak+1+' 月':'—'}</b><small>${yr.length?byM[peak]+' 件':'尚無資料'}</small></div>
+  <div class="kpi"><span>最常維修</span><b style="font-family:var(--f-body);font-size:20px">${top?esc(top[0]):'—'}</b><small>${top?top[1]+' 件':''}</small></div>`;
+}
+function sector(cx,cy,a0,a1,r0,r1){
+ const p=(r,a)=>`${(cx+r*Math.sin(a)).toFixed(2)} ${(cy-r*Math.cos(a)).toFixed(2)}`;
+ return `M${p(r0,a0)} L${p(r1,a0)} A${r1} ${r1} 0 0 1 ${p(r1,a1)} L${p(r0,a1)} A${r0} ${r0} 0 0 0 ${p(r0,a0)} Z`;
+}
+function renderRose(yr){
+ const cx=170,cy=170,r0=40,R=136,svg=$('#rose');
+ const m=Array.from({length:12},()=>({ww:0,br:0,pc:0}));
+ yr.forEach(r=>m[+r.date.slice(5,7)-1][famKey(r.family)]++);
+ const tot=m.map(o=>o.ww+o.br+o.pc),max=Math.max(1,...tot);
+ const step=Math.PI*2/12,gap=.035;
+ let h=[0.25,0.5,0.75,1].map(f=>`<circle class="ring" cx="${cx}" cy="${cy}" r="${(r0+(R-r0)*f).toFixed(1)}"/>`).join('');
+ m.forEach((o,i)=>{
+  const a0=i*step+gap,a1=(i+1)*step-gap;let acc=0;let segs='';
+  for(const [,k] of FAMS){if(!o[k])continue;const s0=r0+(R-r0)*acc/max;acc+=o[k];const s1=r0+(R-r0)*acc/max;
+   segs+=`<path class="petal f-${k}" style="animation-delay:${i*45}ms" d="${sector(cx,cy,a0,a1,s0,s1)}"/>`}
+  const am=(i+.5)*step,lx=cx+(R+18)*Math.sin(am),ly=cy-(R+18)*Math.cos(am);
+  const dim=stat.month!==null&&stat.month!==i;
+  h+=`<g class="petal-g${dim?' dim':''}" data-m="${i}" tabindex="0" role="button" aria-label="${i+1} 月 ${tot[i]} 件">${segs||`<path d="${sector(cx,cy,a0,a1,r0,r0+2)}" fill="var(--line)"/>`}<path d="${sector(cx,cy,a0,a1,r0,R+8)}" fill="transparent"/></g><text class="axis-t${stat.month===i?' on':''}" x="${lx.toFixed(1)}" y="${ly.toFixed(1)}">${i+1}月</text>`;
+ });
+ const centerN=stat.month===null?yr.length:tot[stat.month];
+ h+=`<text class="center-n" x="${cx}" y="${cy-4}">${centerN}</text><text class="center-l" x="${cx}" y="${cy+18}">${stat.month===null?'全年件數':(stat.month+1)+' 月件數'}</text>`;
+ svg.innerHTML=h;svg._m=m;
+}
+$('#rose').addEventListener('pointermove',e=>{const g=e.target.closest('[data-m]');if(!g)return hideTip();const i=+g.dataset.m,o=$('#rose')._m[i];showTip(e,`${i+1} 月 · 共 <b>${o.ww+o.br+o.pc}</b> 件<br>木管 ${o.ww}　銅管 ${o.br}　打擊 ${o.pc}`)});
+$('#rose').addEventListener('pointerleave',hideTip);
+function pickMonth(i){stat.month=stat.month===i?null:i;const yr=allRecords().filter(r=>+r.date.slice(0,4)===stat.year);renderRose(yr);renderMatrix(yr);if(stat.inst)renderDrill(yr,stat.inst,true);renderList(yr)}
+$('#rose').addEventListener('click',e=>{const g=e.target.closest('[data-m]');if(g)pickMonth(+g.dataset.m)});
+$('#rose').addEventListener('keydown',e=>{const g=e.target.closest('[data-m]');if(g&&(e.key==='Enter'||e.key===' ')){e.preventDefault();pickMonth(+g.dataset.m)}});
+
+function renderMatrix(yr){
+ const svg=$('#matrix'),cnt={};
+ yr.forEach(r=>{const k=r.instId||r.inst;(cnt[k]=cnt[k]||{name:r.inst,fam:famKey(r.family),m:Array(12).fill(0)}).m[+r.date.slice(5,7)-1]++});
+ const rows=Object.entries(cnt).sort((a,b)=>ORDER.indexOf(a[0])-ORDER.indexOf(b[0]));
+ const L=118,cw=30,rh=30,top=24,W=L+cw*12+44,H=top+Math.max(1,rows.length)*rh+6;
+ const max=Math.max(1,...rows.flatMap(([,o])=>o.m));
+ let h='';
+ if(stat.month!==null)h+=`<rect class="mcol on" x="${L+stat.month*cw}" y="0" width="${cw}" height="${H}" rx="6"/>`;
+ for(let i=0;i<12;i++)h+=`<text class="axis-t${stat.month===i?' on':''}" x="${L+i*cw+cw/2}" y="10">${i+1}</text>`;
+ h+=`<text class="axis-t" x="${L+cw*12+22}" y="10">合計</text>`;
+ if(!rows.length)h+=`<text class="axis-t" x="${W/2}" y="${top+14}">這一年還沒有紀錄</text>`;
+ rows.forEach(([id,o],ri)=>{
+  const y=top+ri*rh+rh/2,total=o.m.reduce((a,b)=>a+b,0);
+  h+=`<g class="mrow${stat.inst===id?' on':''}" data-i="${esc(id)}" tabindex="0" role="button" aria-label="${esc(o.name)} 全年 ${total} 件，查看廠牌型號"><rect class="mrow-bg" x="0" y="${y-rh/2}" width="${W}" height="${rh}" rx="6"/><text class="mrow-l" x="6" y="${y}">${esc(o.name)}</text></g>`;
+  h+=`<line class="grid-l" x1="${L}" x2="${L+cw*12}" y1="${y}" y2="${y}"/>`;
+  o.m.forEach((v,mi)=>{if(!v)return;const r=Math.max(4,Math.sqrt(v/max)*13);
+   h+=`<g data-cell="${esc(id)}|${mi}"><circle class="dot f-${o.fam}" style="animation-delay:${mi*35+ri*20}ms" cx="${L+mi*cw+cw/2}" cy="${y}" r="${r.toFixed(1)}"/>${r>=9?`<text class="dot-n" x="${L+mi*cw+cw/2}" y="${y}">${v}</text>`:''}<rect x="${L+mi*cw}" y="${y-rh/2}" width="${cw}" height="${rh}" fill="transparent"/></g>`});
+  h+=`<text class="tot" x="${L+cw*12+12}" y="${y}">${total}</text>`;
+ });
+ svg.setAttribute('viewBox',`0 0 ${W} ${H}`);svg.setAttribute('width',W);svg.setAttribute('height',H);
+ svg.innerHTML=h;svg._rows=Object.fromEntries(rows);
+}
+$('#matrix').addEventListener('pointermove',e=>{const c=e.target.closest('[data-cell]');if(!c)return hideTip();const [id,mi]=c.dataset.cell.split('|');const o=$('#matrix')._rows[id];showTip(e,`${esc(o.name)} · ${+mi+1} 月<br><b>${o.m[mi]}</b> 件`)});
+$('#matrix').addEventListener('pointerleave',hideTip);
+function openDrill(id,e){
+ stat.inst=stat.inst===id?null:id;
+ const yr=allRecords().filter(r=>+r.date.slice(0,4)===stat.year);
+ renderMatrix(yr);
+ const d=$('#drill');
+ if(e){const b=d.parentElement.getBoundingClientRect();d.style.setProperty('--ox',(e.clientX-b.left)+'px');d.style.setProperty('--oy','-40px')}
+ renderDrill(yr,stat.inst);
+ if(stat.inst)setTimeout(()=>d.scrollIntoView({behavior:matchMedia('(prefers-reduced-motion:reduce)').matches?'auto':'smooth',block:'nearest'}),80);
+}
+$('#matrix').addEventListener('click',e=>{const g=e.target.closest('[data-i]');if(g)openDrill(g.dataset.i,e)});
+$('#matrix').addEventListener('keydown',e=>{const g=e.target.closest('[data-i]');if(g&&(e.key==='Enter'||e.key===' ')){e.preventDefault();openDrill(g.dataset.i)}});
+$('#drillX').addEventListener('click',()=>{stat.inst=null;const yr=allRecords().filter(r=>+r.date.slice(0,4)===stat.year);renderMatrix(yr);renderDrill(yr,null)});
+function renderDrill(yr,id,keepOpen){
+ const d=$('#drill');
+ if(!id){d.classList.add('closed');setTimeout(()=>{if(!stat.inst)d.hidden=true},500);return}
+ const recs=yr.filter(r=>(r.instId||r.inst)===id&&(stat.month===null||+r.date.slice(5,7)-1===stat.month));
+ const name=(ENTRY_BY_ID[id]||{}).name||id,fam=famKey((ENTRY_BY_ID[id]||{}).family||recs[0]?.family);
+ $('#drillEyebrow').textContent=`${stat.year} 年${stat.month!==null?` ${stat.month+1} 月`:''} · ${recs.length} 件`;
+ $('#drillTitle').textContent=`${name}：廠牌與型號`;
+ const by={};recs.forEach(r=>{const b=r.model?.brand||'未填廠牌',m=r.model?.name||'未填型號';(by[b]=by[b]||{n:0,m:{}}).n++;by[b].m[m]=(by[b].m[m]||0)+1});
+ const brands=Object.entries(by).sort((a,b)=>b[1].n-a[1].n);
+ $('#tree').innerHTML=brands.length?brands.map(([b,o],bi)=>`<div class="tb" style="flex:${o.n} 1 0;animation-delay:${bi*70}ms">${Object.entries(o.m).sort((a,b)=>b[1]-a[1]).map(([m,v],mi)=>`<div class="tm" style="flex:${v} 1 0;--fc:var(--fam-${fam});--mix:${Math.max(18,70-bi*12-mi*8)}%" title="${esc(b)} ${esc(m)}：${v} 件">${mi===0?`<span class="brand">${esc(b)}</span>`:''}<b>${esc(m)}</b><span>${v} 件</span></div>`).join('')}</div>`).join(''):'<p class="hint" style="padding:16px">這段期間沒有這項樂器的紀錄。</p>';
+ $('#drillTable').innerHTML=brands.length?`<thead><tr><th>廠牌</th><th>型號</th><th style="text-align:right">件數</th></tr></thead><tbody>${brands.flatMap(([b,o])=>Object.entries(o.m).sort((a,b)=>b[1]-a[1]).map(([m,v])=>`<tr><td>${esc(b)}</td><td>${esc(m)}</td><td class="n">${v}</td></tr>`)).join('')}</tbody>`:'';
+ d.hidden=false;
+ if(!keepOpen){d.classList.add('closed');requestAnimationFrame(()=>requestAnimationFrame(()=>d.classList.remove('closed')))}else d.classList.remove('closed');
+}
+function repLine(x){return `${x.part}｜${x.item}：${x.r.join('、')||'—'} → ${x.m.join('、')||'—'}${x.note?`（${x.note}）`:''}`}
+function renderList(yr){
+ const recs=yr.filter(r=>stat.month===null||+r.date.slice(5,7)-1===stat.month);
+ const chip=$('#monthChip');chip.hidden=stat.month===null;chip.textContent=stat.month!==null?`只看 ${stat.month+1} 月 ✕`:'';
+ const groups={};
+ for(const r of recs){const k=stat.group==='inst'?(r.instId||r.inst):r.date.slice(0,7);(groups[k]=groups[k]||[]).push(r)}
+ const keys=Object.keys(groups).sort(stat.group==='inst'?(a,b)=>ORDER.indexOf(a)-ORDER.indexOf(b):(a,b)=>b.localeCompare(a));
+ $('#records').innerHTML=keys.length?keys.map((k,gi)=>{
+  const list=groups[k],first=list[0];
+  const title=stat.group==='inst'?first.inst:`${+k.slice(5)} 月`;
+  const dot=stat.group==='inst'?`<i class="f-${famKey(first.family)}"></i>`:'';
+  return `<details class="grp"${gi<2?' open':''}><summary>${dot}<b>${esc(title)}</b><span class="cnt">${list.length} 件</span></summary><div class="rows">${list.map(r=>`<div class="row" data-id="${esc(r.id)}" tabindex="0" role="button" aria-label="查看 ${esc(r.date)} ${esc(r.inst)} 維修紀錄"><span class="d">${esc(r.date.slice(5).replace('-','/'))}（${weekdayOf(r.date)}）</span>
+   <span class="t"><b>${esc(stat.group==='inst'?[r.model?.brand,r.model?.name].filter(Boolean).join(' ')||'未填型號':r.inst+' '+[r.model?.brand,r.model?.name].filter(Boolean).join(' '))}</b>${r.sample?'<span class="badge mini sample">範例</span>':''} · ${esc(r.customer?r.customer.name:'未填客戶')}${(r.services||[]).length?`<span class="svc-tags">${r.services.map(v=>`<span class="svc-tag">${esc(v)}</span>`).join('')}</span>`:''}</span>
+   <span class="s">${esc(r.repairs.map(x=>`${x.part}（${x.m.join('、')||x.item}）`).join('；')||'未標記部位')}${r.photos.length?` · 照片 ${r.photos.length} 張`:''}</span><span class="go">查看紀錄 →</span></div>`).join('')}</div></details>`;
+ }).join(''):'<p class="empty">這段期間沒有紀錄。到「新增紀錄」建立第一筆吧。</p>';
+}
+$('#statYear').addEventListener('change',e=>{stat.year=+e.target.value;stat.month=null;stat.inst=null;renderRecords()});
+$('#showSample').addEventListener('change',()=>{stat.inst=null;renderRecords()});
+$('#monthChip').addEventListener('click',()=>pickMonth(stat.month));
+document.querySelectorAll('.seg button').forEach(b=>b.addEventListener('click',()=>{stat.group=b.dataset.g;document.querySelectorAll('.seg button').forEach(x=>x.setAttribute('aria-pressed',x===b));renderList(allRecords().filter(r=>+r.date.slice(0,4)===stat.year))}));
+
+/* ---------- Record detail (same layout as the full report) ---------- */
+// Sample records have no real photos: draw a labelled placeholder so the viewer can be tried.
+function samplePhoto(r,k){
+ const hue=[205,25,160][['木管','銅管','打擊'].indexOf(r.family)]??205,cap=(r.photos[k]||{}).caption||'';
+ const svg=`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 600"><defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="hsl(${hue} 45% 82%)"/><stop offset="1" stop-color="hsl(${hue} 40% 62%)"/></linearGradient></defs><rect width="800" height="600" fill="url(#g)"/><circle cx="400" cy="250" r="90" fill="none" stroke="hsl(${hue} 35% 35%)" stroke-width="10"/><circle cx="400" cy="250" r="30" fill="hsl(${hue} 35% 35%)"/><text x="400" y="420" font-family="sans-serif" font-size="44" text-anchor="middle" fill="hsl(${hue} 40% 20%)">${r.inst}</text><text x="400" y="480" font-family="sans-serif" font-size="32" text-anchor="middle" fill="hsl(${hue} 40% 25%)">範例照片 ${k+1}・${cap}</text></svg>`;
+ return 'data:image/svg+xml;charset=utf-8,'+encodeURIComponent(svg);
+}
+function photoUrls(r){return r.sample?r.photos.map((_,k)=>samplePhoto(r,k)):r.photos.map(p=>p.fileId?'fid:'+p.fileId:'')}
+let rvRec=null;
+function openRecord(id){
+ const r=allRecords().find(x=>x.id===id);if(!r)return;
+ rvRec=r;
+ $('#rvEyebrow').textContent=`${r.date}（${weekdayOf(r.date)}）${r.sample?' · 範例':''}`;
+ $('#rvTitle').textContent=`${r.inst}${r.model&&r.model.name?' · '+r.model.name:''}`;
+ $('#rvBody').innerHTML=recordPages(r,1,{cust:false,staff:false,asset:false},r.date.slice(0,7),1,2,'維修紀錄').replace('<h4>1. ','<h4>').replace('<h4>1. ','<h4>');
+ $('#rvBody').querySelectorAll('.page').forEach((p,i)=>p.style.animationDelay=i*120+'ms');hydrate($('#rvBody'));
+ $('#recView').hidden=false;$('#recView').scrollTop=0;document.body.style.overflow='hidden';
+ $('#rvClose').focus();
+}
+function closeRecord(){$('#recView').hidden=true;document.body.style.overflow='';if(rvRec){const row=document.querySelector(`.row[data-id="${CSS.escape(rvRec.id)}"]`);if(row)row.focus()}}
+$('#rvClose').addEventListener('click',closeRecord);
+$('#records').addEventListener('click',e=>{const row=e.target.closest('.row[data-id]');if(row)openRecord(row.dataset.id)});
+$('#records').addEventListener('keydown',e=>{const row=e.target.closest('.row[data-id]');if(row&&(e.key==='Enter'||e.key===' ')){e.preventDefault();openRecord(row.dataset.id)}});
+
+const lb={rec:null,k:0,urls:[]};
+function openPhoto(id,k){
+ const r=allRecords().find(x=>x.id===id);if(!r)return;
+ lb.rec=r;lb.urls=photoUrls(r);lb.k=k;showPhoto();
+ $('#lightbox').hidden=false;$('#lbClose').focus();
+}
+function showPhoto(){
+ const r=lb.rec,k=lb.k;
+ const u=lb.urls[k],im=$('#lbImg');im.alt=`照片 ${k+1}`;
+ if(u.startsWith('fid:')){im.removeAttribute('src');getPhotoUrl(u.slice(4)).then(x=>{if(lb.k===k)im.src=x}).catch(()=>{im.alt='照片無法載入'})}else im.src=u;
+ $('#lbCap').textContent=`${k+1} / ${lb.urls.length}　${(r.photos[k]||{}).caption||''}`;
+ $('#lbPrev').disabled=k<=0;$('#lbNext').disabled=k>=lb.urls.length-1;
+ const f=$('#lightbox figure');f.style.animation='none';f.offsetWidth;f.style.animation='';
+}
+function closePhoto(){$('#lightbox').hidden=true;const b=document.querySelector(`[data-ph="${CSS.escape(lb.rec.id+'|'+lb.k)}"]`);if(b)b.focus()}
+document.addEventListener('click',e=>{const b=e.target.closest('[data-ph]');if(!b)return;const [id,k]=b.dataset.ph.split('|');openPhoto(id,+k)});
+$('#lbClose').addEventListener('click',closePhoto);
+$('#lbPrev').addEventListener('click',()=>{if(lb.k>0){lb.k--;showPhoto()}});
+$('#lbNext').addEventListener('click',()=>{if(lb.k<lb.urls.length-1){lb.k++;showPhoto()}});
+$('#lightbox').addEventListener('click',e=>{if(e.target.id==='lightbox')closePhoto()});
+document.addEventListener('keydown',e=>{
+ if(!$('#lightbox').hidden){if(e.key==='Escape')closePhoto();if(e.key==='ArrowLeft')$('#lbPrev').click();if(e.key==='ArrowRight')$('#lbNext').click();return}
+ if(e.key==='Escape'&&!$('#recView').hidden)closeRecord();
+});
+
+/* ================= Monthly report ================= */
+const SCHOOL_SUF=/(國民小學|國民中學|高級中等學校|高級中學|高級工業職業學校|高級商業職業學校|高級家事商業職業學校|實驗高級中學|完全中學|專科學校|科技大學|大學|學院|國小|國中|高中|高工|高商|高職|中學|附中|管樂團|樂團|協會|職業學校|學校|分校)$/;
+function maskName(s,type){
+ if(!s)return s;
+ if(type==='個人')return s[0]+'○'.repeat(Math.max(1,s.length-1));
+ const pre=(s.match(/^(市立|縣立|國立|私立)/)||[''])[0],suf=(s.match(SCHOOL_SUF)||[''])[0];
+ return pre+'○○'+suf;
+}
+function viewRec(r,mk){
+ const c=r.customer;
+ return{
+  cust:c?(mk.cust?maskName(c.name,c.type):c.name):'未填',
+  custType:c?c.type:'',
+  place:c&&c.county?(mk.cust?c.county:c.county+c.dist):'',
+  staff:r.staff?(mk.staff?r.staff[0]+'○○':r.staff):'未填',
+  asset:r.assetNo?(mk.asset?r.assetNo.replace(/\d/g,'＊'):r.assetNo):'未填',
+  model:r.model?[r.model.brand,r.model.grade,r.model.name].filter(Boolean).join(' · '):'未填型號'
+ };
+}
+const repState={};
+function openReport(){
+ const recs=allRecords(),months=[...new Set(recs.map(r=>r.date.slice(0,7)))].sort().reverse();
+ const want=stat.month!==null?`${stat.year}-${String(stat.month+1).padStart(2,'0')}`:months[0];
+ $('#repMonth').innerHTML=months.map(m=>`<option value="${m}"${m===want?' selected':''}>${m.slice(0,4)} 年 ${+m.slice(5)} 月</option>`).join('');
+ $('#report').hidden=false;document.body.style.overflow='hidden';buildReport();
+}
+$('#openReport').addEventListener('click',openReport);
+$('#repClose').addEventListener('click',()=>{$('#report').hidden=true;document.body.style.overflow=''});
+['repMonth','repType','mCust','mStaff','mAsset'].forEach(id=>$('#'+id).addEventListener('change',buildReport));
+function monthRecs(){const m=$('#repMonth').value;return allRecords().filter(r=>r.date.startsWith(m)).sort((a,b)=>a.date.localeCompare(b.date))}
+function masks(){return{cust:$('#mCust').checked,staff:$('#mStaff').checked,asset:$('#mAsset').checked}}
+function textReport(type){
+ const recs=monthRecs(),mk=masks(),m=$('#repMonth').value,fam={};
+ recs.forEach(r=>fam[r.family]=(fam[r.family]||0)+1);
+ const byI={};recs.forEach(r=>byI[r.inst]=(byI[r.inst]||0)+1);
+ const L=[`樂器維護月報｜${m.slice(0,4)} 年 ${+m.slice(5)} 月`,'',
+  `統計：共 ${recs.length} 件（${FAMS.map(([f])=>`${f} ${fam[f]||0}`).join('、')}），維修部位 ${recs.reduce((s,r)=>s+r.repairs.length,0)} 處`,
+  `各樂器：${Object.entries(byI).sort((a,b)=>b[1]-a[1]).map(([k,v])=>`${k} ${v}`).join('、')||'無'}`,'─'.repeat(24)];
+ recs.forEach((r,i)=>{
+  const v=viewRec(r,mk),d=`${r.date}（${weekdayOf(r.date)}）`;
+  if(type==='summary'){
+   L.push(`${i+1}. ${d}　${r.inst}｜${v.model}`,`   客戶：${v.cust}${v.place?`（${v.place}）`:''}｜維護項目：${(r.services||[]).join('、')||'—'}｜維修 ${r.repairs.length} 處：${r.repairs.map(x=>x.part).join('、')||'—'}`);
+  }else{
+   L.push('',`【${i+1}】${d}`,`樂器：${r.inst}（${r.family}）`,`型號：${v.model}`);
+   if(r.config&&r.config.length)L.push(`配置：${r.config.join('；')}`);
+   L.push(`維護項目：${(r.services||[]).join('、')||'未填'}`,`樂器編號：${v.asset}`,`客戶：${v.custType?v.custType+'－':''}${v.cust}${v.place?`（${v.place}）`:''}`,`維修人員：${v.staff}`,'維修項目：');
+   r.repairs.forEach(x=>L.push(`  － ${repLine(x)}`));
+   if(!r.repairs.length)L.push('  － 未標記部位');
+   const rep=replacedParts(r);if(rep.length)L.push(`更換零件：${rep.join('、')}`);
+   L.push(`照片：${r.photos.length} 張${r.photos.some(p=>p.caption)?`（${r.photos.map(p=>p.caption).filter(Boolean).join('、')}）`:''}`);
+   if(r.notes)L.push(`備註：${r.notes}`);
+  }
+ });
+ if(!recs.length)L.push('這個月沒有維修紀錄。');
+ return L.join('\n');
+}
+function replacedParts(r){return [...new Set(r.repairs.filter(x=>x.m.some(t=>t.includes('更換'))).map(x=>`${x.part}（${x.m.filter(t=>t.includes('更換')).join('、')}）`))]}
+const ORN=`<svg viewBox="0 0 60 60" aria-hidden="true"><path d="M4 56 V22 Q4 4 22 4 H56" fill="none" stroke="currentColor" stroke-width="2"/><path d="M12 56 V26 Q12 12 26 12 H56" fill="none" stroke="currentColor" stroke-width="1"/><circle cx="22" cy="22" r="4" fill="currentColor"/><path d="M22 30 q8 0 8 -8" fill="none" stroke="currentColor" stroke-width="1.2"/></svg>`;
+function page(inner,no,total,m,sub){return `<article class="page"><span class="orn tl">${ORN}</span><span class="orn tr">${ORN}</span><span class="orn bl">${ORN}</span><span class="orn br">${ORN}</span>
+ <header class="pg-head"><span class="brandline">樂器維護紀錄表</span><span class="pg-sub">${sub||`${m.slice(0,4)} 年 ${+m.slice(5)} 月維修報告`}</span></header>${inner}
+ <footer class="pg-foot"><span>樂器維護紀錄表</span><span>第 ${no} ／ ${total} 頁</span></footer></article>`}
+function pathCenter(d){const n=(d.match(/-?\d+(\.\d+)?/g)||[]).map(Number);let x=0,y=0,k=0;for(let i=0;i+1<n.length;i+=2){x+=n[i];y+=n[i+1];k++}return k?[x/k,y/k]:[0,0]}
+function reportDiagram(r){
+ const entry=ENTRY_BY_ID[r.instId];if(!entry)return '<p>（此紀錄沒有樂器圖資料）</p>';
+ const inst=entry.make(r.cfg||configFor(r.instId,{}));
+ const ids=[...new Set(r.repairs.map(x=>x.partId).filter(Boolean))],num={};ids.forEach((id,i)=>num[id]=i+1);
+ const [w,h]=inst.vb;
+ const body=inst.parts.map(p=>{const c=p.tag?center(p.shapes[0]):null;return `<g class="part${num[p.id]?' sel':''}">${p.shapes.map(shapeSvg).join('')}${c?`<text class="tag" x="${c[0]}" y="${c[1]}">${esc(p.tag)}</text>`:''}</g>`}).join('');
+ const deco=(inst.deco||[]).map(s=>shapeSvg(s).replace(/<(\w+) /,'<$1 class="deco" ')).join('')+(inst.holes||[]).map(s=>shapeSvg(s).replace(/<(\w+) /,'<$1 class="hole" ')).join('');
+ const badges=ids.map(id=>{const p=inst.parts.find(q=>q.id===id);if(!p)return '';const s=p.shapes[0];let [x,y]=center(s)||pathCenter(s.d);
+  x=Math.min(w-10,Math.max(10,x+10));y=Math.min(h-10,Math.max(10,y-12));return `<circle class="badge-c" cx="${x}" cy="${y}" r="9"/><text class="badge-t" x="${x}" y="${y}">${num[id]}</text>`}).join('');
+ return {svg:`<svg viewBox="0 0 ${w} ${h}" role="img" aria-label="${esc(inst.name)}維修位置">${body}${deco}${badges}</svg>`,num};
+}
+function recordPages(r,idx,mk,m,no,total,sub){
+ let html='';
+  const v=viewRec(r,mk),dia=reportDiagram(r),rep=replacedParts(r);
+  const order=[...new Set(r.repairs.map(x=>x.partId))];
+  const items=order.map(pid=>{const rows=r.repairs.filter(x=>x.partId===pid);return `<li><span class="no">${dia.num?dia.num[pid]||'•':'•'}</span><span><b>${esc(rows[0].part)}</b><br>${rows.map(x=>`${esc(x.item)}：${esc(x.m.join('、')||'—')} <small>（原因：${esc(x.r.join('、')||'—')}${x.note?'；'+esc(x.note):''}）</small>`).join('<br>')}</span></li>`}).join('');
+  html+=page(`<h4>${idx}. ${esc(r.inst)}</h4>
+   <dl class="info"><dt>日期</dt><dd>${esc(r.date)}（${weekdayOf(r.date)}）</dd><dt>類別</dt><dd>${esc(r.family)}</dd>
+    <dt>客戶</dt><dd>${esc(v.cust)}</dd><dt>地區</dt><dd>${esc(v.place||'—')}</dd>
+    <dt>型號</dt><dd>${esc(v.model)}</dd><dt>樂器編號</dt><dd>${esc(v.asset)}</dd>
+    <dt>維修人員</dt><dd>${esc(v.staff)}</dd><dt>照片</dt><dd>${r.photos.length} 張</dd>
+    <dt>維護項目</dt><dd style="grid-column:span 3">${esc((r.services||[]).join('、')||'未填')}</dd>
+    ${r.config&&r.config.length?`<dt>配置</dt><dd style="grid-column:span 3">${esc(r.config.join('；'))}</dd>`:''}</dl>
+   <div class="pg-dia">${dia.svg||dia}</div>
+   <ol class="rlist">${items||'<li><span class="no">－</span><span>未標記維修部位</span></li>'}</ol>
+   ${rep.length?`<p class="replaced"><b>更換零件：</b>${esc(rep.join('、'))}</p>`:''}
+   ${r.notes?`<p style="margin:0"><b>備註：</b>${esc(r.notes)}</p>`:''}`,no++,total,m,sub);
+  const urls=photoUrls(r);
+  const cells=Array.from({length:6},(_,k)=>{const p=r.photos[k];return `<td><div class="ph-cell"><div class="ph-img">${urls[k]?`<button type="button" data-ph="${esc(r.id)}|${k}" aria-label="放大照片 ${k+1}">${imgTag(urls[k],k)}</button>`:'—'}</div><div class="ph-cap"><b>${k+1}</b>${p?esc(p.caption||''):''}</div></div></td>`});
+  html+=page(`<h4>${idx}. ${esc(r.inst)}　照片紀錄</h4><table class="ph-table"><tbody>${[0,2,4].map(k=>`<tr>${cells[k]}${cells[k+1]}</tr>`).join('')}</tbody></table>`,no++,total,m,sub);
+  return html;
+}
+function photoReport(){
+ const recs=monthRecs(),mk=masks(),m=$('#repMonth').value,total=1+recs.length*2;let html='',no=1;
+ const fam={};recs.forEach(r=>fam[r.family]=(fam[r.family]||0)+1);
+ const byI={};recs.forEach(r=>byI[r.inst]=(byI[r.inst]||0)+1);
+ html+=page(`<h4>${m.slice(0,4)} 年 ${+m.slice(5)} 月 維修總覽</h4>
+  <div class="cover-stats">${FAMS.map(([f])=>`<div><b>${fam[f]||0}</b>${f}</div>`).join('')}</div>
+  <p>本月共維修 <b>${recs.length}</b> 件樂器、<b>${recs.reduce((s,r)=>s+r.repairs.length,0)}</b> 處部位。以下每件樂器各兩頁：第一頁為基本資料與維修位置，第二頁為照片。</p>
+  <ol class="cover-list">${recs.map(r=>`<li>${esc(r.date.slice(5).replace('-','/'))} ${esc(r.inst)}　${esc(viewRec(r,mk).cust)}</li>`).join('')}</ol>`,no++,total,m);
+ recs.forEach((r,i)=>{html+=recordPages(r,i+1,mk,m,no,total);no+=2});
+ return html;
+}
+let repHydrate=Promise.resolve();
+function buildReport(){
+ const type=$('#repType').value,body=$('#repBody');
+ $('#repCopy').hidden=type==='photo';$('#repDl').hidden=type==='photo';$('#repPrint').hidden=type!=='photo';
+ body.innerHTML=type==='photo'?photoReport():`<pre class="txt" id="repText">${esc(textReport(type))}</pre>`;
+ body.querySelectorAll('.page').forEach((p,i)=>p.style.animationDelay=Math.min(i,6)*90+'ms');repHydrate=hydrate(body);
+}
+$('#repCopy').addEventListener('click',()=>{
+ const t=textReport($('#repType').value);
+ const fallback=()=>{const r=document.createRange();r.selectNodeContents($('#repText'));const s=getSelection();s.removeAllRanges();s.addRange(r);toast('已選取文字，請按複製')};
+ try{navigator.clipboard.writeText(t).then(()=>toast('已複製報告文字'),fallback)}catch(e){fallback()}
+});
+$('#repDl').addEventListener('click',()=>{
+ const a=document.createElement('a');a.href=URL.createObjectURL(new Blob(['﻿'+textReport($('#repType').value)],{type:'text/plain;charset=utf-8'}));
+ a.download=`樂器維護月報_${$('#repMonth').value}_${$('#repType').value==='summary'?'摘要':'詳細'}.txt`;document.body.appendChild(a);a.click();a.remove();
+});
+$('#repPrint').addEventListener('click',async()=>{const b=$('#repPrint');b.disabled=true;b.textContent='載入照片中…';try{await repHydrate}catch(e){}b.disabled=false;b.textContent='列印／存成 PDF';window.print()});
+
+/* ================= Boot ================= */
+renderPhotos();renderDiagram();renderServices();
+initAuth();
+</script>
+</body>
+</html>

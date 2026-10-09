@@ -1,0 +1,33 @@
+$('#recForm').addEventListener('submit',async e=>{
+ e.preventDefault();const msg=$('#formMsg'),btn=$('#saveBtn');
+ if(btn.disabled)return;
+ if(!dateEl.value){msg.textContent='請選擇日期。';return}
+ if(!state.inst){msg.textContent='請先選擇樂器（分類 → 類別 → 樂器）。';selInst.disabled?selCat.focus():selInst.focus();return}
+ const reps=flatRepairs(),photos=state.photos.filter(Boolean);
+ if(!state.services.length&&!reps.length&&!photos.length){msg.textContent='請選擇此次維護項目、標記維修部位，或上傳照片。';return}
+ const cust=customerOf();
+ if(cust&&!cust.name){msg.textContent=cust.type==='學校'?'請選擇學校，或用搜尋帶入。':`請輸入${cust.type==='團體'?'團體名稱':'客人姓名'}。`;return}
+ const md=state.model?{brand:state.model.brand,grade:state.model.grade,name:state.model.name}:null;
+ if(md&&state.model.manual&&!md.name){msg.textContent='請輸入型號，或改選清單中的型號。';manualModel.focus();return}
+ msg.textContent='';btn.disabled=true;
+ const id=Date.now().toString(36)+Math.random().toString(36).slice(2,6);
+ try{
+  const saved=[];
+  for(let k=0;k<photos.length;k++){
+   btn.textContent=`上傳照片 ${k+1}／${photos.length}…`;
+   const p=photos[k],blob=p.fileId?null:await compressPhoto(p.file);
+   const fid=p.fileId||await upload({name:`${dateEl.value}_${state.inst.name}_${id}_${k+1}.jpg`,parents:[DB.photos],mimeType:'image/jpeg'},blob);
+   p.fileId=fid;photoCache[fid]=Promise.resolve(p.url);
+   saved.push({caption:p.caption,fileId:fid});
+  }
+  btn.textContent='儲存紀錄…';
+  const rec={id,date:dateEl.value,instId:state.entry.id,family:state.family,inst:state.inst.name,assetNo:$('#assetNo').value.trim(),user:state.user,staff:state.name,
+   customer:cust,model:md,services:[...state.services],cfg:{...state.config},config:configLabels(),repairs:reps,photos:saved,notes:$('#notes').value.trim()};
+  await saveRecordToDrive(rec);
+  state.photos=Array(6).fill(null);
+  state.repairs={};state.services=[];renderServices();$('#assetNo').value='';$('#notes').value='';renderPhotos();renderDiagram();
+  toast('已儲存到 Google Drive');showView('list');
+ }catch(err){
+  msg.textContent=`儲存失敗：${err.message||'網路連線中斷'}。資料還在畫面上，請確認網路後再按一次「儲存紀錄」。`;
+ }finally{btn.disabled=false;btn.textContent='儲存紀錄'}
+});
