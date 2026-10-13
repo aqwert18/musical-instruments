@@ -47,8 +47,6 @@ rep('  <div id="tip" class="tip" role="tooltip" hidden></div>\n', '  <div id="ti
     '    <p id="shareMsg" class="hint" role="status"></p>\n'
     '    <p class="eyebrow">目前分享給</p><ul id="shareList" class="share-list"></ul>\n'
     '  </section>\n')
-rep('<div class="save-row"><p id="formMsg" role="status"></p><button class="btn-primary" type="submit">儲存紀錄</button></div>',
-    '<div class="save-row"><p id="formMsg" role="status"></p><button class="btn-primary" id="saveBtn" type="submit">儲存紀錄</button></div>')
 rep('<label class="chk"><input type="checkbox" id="showSample" checked> 含範例資料</label>',
     '<label class="chk"><input type="checkbox" id="showSample"> 顯示示範資料</label>')
 s = re.sub(r'<p class="hint" id="repNote">.*?</p>', '', s, count=1)
@@ -81,10 +79,7 @@ a.mode:hover{color:var(--accent);border-color:var(--accent)}
 s = re.sub(r"// 樣板用的示範名字；正式版直接讀取 Google 帳號名稱\nconst MOCK_NAMES = \{.*?\};\n", '', s, count=1)
 cut('/* ================= Login ================= */', '/* ================= Tabs & version', drive_js)
 rep("/* ---------- Statistics view ---------- */", "/* ---------- Statistics view ---------- */\n" + (ROOT / 'tools' / 'share.js.txt').read_text(encoding='utf-8'))
-rep("state.photos[+inp.dataset.i]={url:URL.createObjectURL(inp.files[0]),name:inp.files[0].name,caption:''};",
-    "state.photos[+inp.dataset.i]={url:URL.createObjectURL(inp.files[0]),file:inp.files[0],name:inp.files[0].name,caption:''};")
-cut("$('#recForm').addEventListener('submit',e=>{", "/* ---------- 範例資料", save_js + '\n')
-rep("const sessionPhotos={};   // recId → object URLs（樣板：照片只保留到關閉頁面）\n", '')
+rep("/* ---------- 範例資料", save_js + "\n/* ---------- 範例資料")
 rep(" const mine=store.get('mi-records',[]).filter(r=>r.user===state.user);", " const mine=sourceRecords();")
 rep("if(v==='list')renderRecords();", "if(v==='list'){renderRecords();refreshShared()}")
 rep("function closeOverlays(){$('#sheet').hidden=true;$('#verModal').hidden=true;", "function closeOverlays(){$('#sheet').hidden=true;$('#verModal').hidden=true;const sm=document.getElementById('shareModal');if(sm)sm.hidden=true;")
@@ -103,7 +98,8 @@ rep("function buildReport(){", "let repHydrate=Promise.resolve();\nfunction buil
 rep("$('#repPrint').addEventListener('click',()=>{try{window.print()}catch(e){}});",
     "$('#repPrint').addEventListener('click',async()=>{const b=$('#repPrint');b.disabled=true;b.textContent='載入照片中…';try{await repHydrate}catch(e){}b.disabled=false;b.textContent='列印／存成 PDF';window.print()});")
 cut("const saved=store.get('mi-user',null);", "</script>", "initAuth();\n")
-rep("const VERSIONS = [\n", "const VERSIONS = [\n  {v:'V8', date:'2026-10-10', items:[\n"
+# production-only release notes go between the prototype's V9+ entries and V6
+rep("  {v:'V6',", "  {v:'V8', date:'2026-10-10', items:[\n"
     "    '可查看對方的維修紀錄：帳號選單「分享我的紀錄給對方」，對方即可在歷史紀錄切換查看（唯讀）',\n"
     "    '歷史紀錄可切換資料來源：我的紀錄、對方的紀錄、全部（合併）；統計與月報跟著切換',\n"
     "    'Google 權限改為完整雲端硬碟範圍（App 只使用「樂器維護紀錄」資料夾）'\n"
@@ -113,7 +109,7 @@ rep("const VERSIONS = [\n", "const VERSIONS = [\n  {v:'V8', date:'2026-10-10', i
     "    '照片上傳前自動壓縮（長邊 1600px）',\n"
     "    '可加到手機主畫面，全螢幕使用；月報可下載文字檔、列印或存成 PDF',\n"
     "    '示範資料預設關閉，可在統計頁開啟'\n"
-    "  ]},\n")
+    "  ]},\n  {v:'V6',")
 
 # ---- full document wrapper (the prototype relied on the Artifact host's skeleton)
 head_end = s.index('<!-- ============ Login')

@@ -394,6 +394,38 @@ details.plist[open] summary{margin-bottom:8px}
 .lb-nav{border:0;background:rgb(255 255 255 / .14);color:#fff;width:44px;height:64px;border-radius:12px;font-size:30px;line-height:1}
 .lb-nav:disabled{opacity:.2}
 @media (prefers-reduced-motion:reduce){.lightbox,.lightbox figure{animation:none}}
+.money{display:flex;align-items:center;gap:8px}
+.money span{font-family:var(--f-mono);color:var(--muted);font-size:14px}
+.money input{font-family:var(--f-mono);font-variant-numeric:tabular-nums}
+.edit-bar{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:14px;padding:12px 16px;border-radius:var(--r);background:var(--accent-soft);border:1.5px solid var(--accent)}
+.edit-bar span{display:grid;gap:2px;min-width:0}
+.edit-bar small{color:var(--muted);font-size:12.5px}
+.rv-actions{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.rv-confirm{position:sticky;top:64px;z-index:2;margin:12px 16px 0;padding:12px 14px;border-radius:12px;border:1.5px solid var(--rep);background:var(--rep-soft);display:flex;gap:12px;align-items:center;justify-content:space-between;flex-wrap:wrap}
+.rv-confirm p{margin:0;font-size:14px}
+.btn-primary.danger{background:var(--rep);color:var(--rep-ink)}
+.stats-ctrl .seg button{padding:7px 14px}
+.cum-fig{margin-top:14px}
+.cum-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch}
+.cum-wrap svg{display:block;width:100%;min-width:520px;height:auto}
+.cum-grid{stroke:var(--line);stroke-width:1}
+.cum-y{font-size:11px;fill:var(--muted);text-anchor:end;dominant-baseline:central;font-family:var(--f-mono)}
+.cum-bar{fill:color-mix(in oklab,var(--accent) 30%,var(--surface));transform-box:fill-box;transform-origin:bottom;animation:grow .6s cubic-bezier(.2,.8,.2,1) both}
+.cum-bar.on{fill:color-mix(in oklab,var(--accent) 60%,var(--surface))}
+.cum-area{fill:color-mix(in oklab,var(--accent) 14%,transparent);animation:fadein .9s .3s both}
+.cum-line{fill:none;stroke:var(--accent);stroke-width:2.5;stroke-linejoin:round;stroke-linecap:round;stroke-dasharray:1;stroke-dashoffset:1;animation:draw 1.2s .15s cubic-bezier(.4,0,.2,1) forwards}
+.cum-dot{fill:var(--accent);stroke:var(--surface);stroke-width:2}
+.cum-end{font-family:var(--f-mono);font-size:12px;fill:var(--fg);font-weight:700}
+.cum-x{font-size:11px;fill:var(--muted);text-anchor:middle}
+.cum-x.on{fill:var(--fg);font-weight:700}
+.cum-cross{stroke:var(--muted);stroke-width:1;stroke-dasharray:3 3}
+.lg-bar{background:color-mix(in oklab,var(--accent) 30%,var(--surface))!important;border:0!important}
+.lg-line{background:var(--accent)!important;border:0!important;height:3px!important;vertical-align:3px!important}
+@keyframes grow{from{transform:scaleY(0)}to{transform:none}}
+@keyframes fadein{from{opacity:0}to{opacity:1}}
+@keyframes draw{to{stroke-dashoffset:0}}
+@media (prefers-reduced-motion:reduce){.cum-bar,.cum-area{animation:none}.cum-line{animation:none;stroke-dashoffset:0}}
+.amt{font-family:var(--f-mono);color:var(--fg)}
 .fam-legend .f-ww{background:var(--fam-ww)}.fam-legend .f-br{background:var(--fam-br)}.fam-legend .f-pc{background:var(--fam-pc)}
 </style>
 
@@ -446,6 +478,7 @@ details.plist[open] summary{margin-bottom:8px}
   <main>
     <!-- New record -->
     <section id="view-new">
+      <div class="edit-bar" id="editBar" hidden><span><b id="editTitle"></b><small>改完後按最下方的「儲存修改」。</small></span><button type="button" class="btn-ghost" id="editCancel">取消編輯</button></div>
       <form id="recForm" class="form" novalidate>
         <section class="card s-basic">
           <div class="sec-head"><h2>基本資料</h2><span class="staff-tag">維修人員 <b id="staffName"></b></span></div>
@@ -481,10 +514,8 @@ details.plist[open] summary{margin-bottom:8px}
           <div id="modelBox" class="sub" hidden>
             <p class="eyebrow">樂器型號</p>
             <div class="field"><label for="selBrand"><span class="step">4</span>廠牌</label><select id="selBrand"></select></div>
-            <div class="field"><label for="selGrade"><span class="step">5</span>等級</label><select id="selGrade" disabled></select></div>
-            <div class="field"><label for="selModel"><span class="step">6</span>型號</label><select id="selModel" disabled></select></div>
+            <div class="field"><label for="selModel"><span class="step">5</span>型號</label><select id="selModel" disabled></select></div>
             <div class="field" id="manualBox" hidden><label for="manualModel">手動輸入型號</label><input id="manualModel" type="text" placeholder="找不到型號時在這裡輸入，例：Yamaha YFL-211"></div>
-            <div id="cfgBox" class="cfg-box" hidden><p class="eyebrow">樂器配置</p><p class="hint" id="cfgHint"></p><div id="cfgFields" class="cfg"></div></div>
           </div>
         </section>
 
@@ -509,10 +540,11 @@ details.plist[open] summary{margin-bottom:8px}
         </section>
 
         <section class="card s-notes">
+          <div class="field"><label for="amount">維修金額</label><div class="money"><span>NT$</span><input id="amount" type="number" inputmode="numeric" min="0" step="1" placeholder="例：1500"></div></div>
           <div class="field"><label for="notes">備註</label><textarea id="notes" rows="3" placeholder="例：下次保養請一併檢查 G♯ 鍵彈簧"></textarea></div>
         </section>
 
-        <div class="save-row"><p id="formMsg" role="status"></p><button class="btn-primary" type="submit">儲存紀錄</button></div>
+        <div class="save-row"><p id="formMsg" role="status"></p><button class="btn-primary" id="saveBtn" type="submit">儲存紀錄</button></div>
       </form>
     </section>
 
@@ -523,21 +555,27 @@ details.plist[open] summary{margin-bottom:8px}
         <div class="stats-ctrl">
           <label class="sr" for="statYear">年份</label><select id="statYear"></select>
           <label class="chk"><input type="checkbox" id="showSample" checked> 含範例資料</label>
+          <div class="seg" id="metricSeg" role="group" aria-label="統計單位"><button type="button" data-metric="count" aria-pressed="true">件數</button><button type="button" data-metric="amount" aria-pressed="false">金額</button></div>
           <button type="button" class="btn-primary sm" id="openReport">產出月報</button>
         </div>
       </div>
       <div class="kpis" id="kpis"></div>
       <div class="viz-grid">
         <figure class="viz">
-          <figcaption><b>每月維修量</b><span>花瓣長度＝件數，依類別堆疊。點花瓣篩選月份。</span></figcaption>
+          <figcaption><b>每月維修量</b><span id="roseHint">花瓣長度＝件數，依類別堆疊。點花瓣篩選月份。</span></figcaption>
           <div class="rose-wrap"><svg id="rose" viewBox="0 0 340 340" role="img" aria-label="每月維修量花瓣圖"></svg></div>
           <div class="legend fam-legend"><span><i class="f-ww"></i>木管</span><span><i class="f-br"></i>銅管</span><span><i class="f-pc"></i>打擊</span></div>
         </figure>
         <figure class="viz">
-          <figcaption><b>樂器 × 月份</b><span>圓點大小＝件數。點樂器名稱看廠牌與型號。</span></figcaption>
+          <figcaption><b>樂器 × 月份</b><span id="matrixHint">圓點大小＝件數。點樂器名稱看廠牌與型號。</span></figcaption>
           <div class="matrix-wrap"><svg id="matrix" role="img" aria-label="各樂器每月維修件數"></svg></div>
         </figure>
       </div>
+      <figure class="viz cum-fig">
+        <figcaption><b>維修金額累計</b><span>折線是逐月累計金額，長條是當月金額。滑過或點月份看明細。</span></figcaption>
+        <div class="cum-wrap"><svg id="cum" viewBox="0 0 680 250" role="img" aria-label="維修金額逐月累計"></svg></div>
+        <div class="legend cum-legend"><span><i class="lg-bar"></i>當月金額</span><span><i class="lg-line"></i>累計金額</span></div>
+      </figure>
       <section id="drill" class="drill" hidden aria-live="polite">
         <div class="sec-head"><div><p class="eyebrow" id="drillEyebrow"></p><h3 id="drillTitle"></h3></div><button class="x" id="drillX" type="button" aria-label="關閉">×</button></div>
         <div class="tree" id="tree"></div>
@@ -580,7 +618,11 @@ details.plist[open] summary{margin-bottom:8px}
   <section id="recView" class="report" hidden aria-labelledby="rvTitle">
     <div class="rep-bar rv-bar">
       <div><p class="eyebrow" id="rvEyebrow"></p><h2 id="rvTitle">維修紀錄</h2></div>
-      <button type="button" class="btn-primary sm" id="rvClose">關閉</button>
+      <div class="rv-actions"><button type="button" class="btn-ghost" id="rvEdit">編輯</button><button type="button" class="btn-ghost warn" id="rvDel">刪除</button><button type="button" class="btn-primary sm" id="rvClose">關閉</button></div>
+    </div>
+    <div class="rv-confirm" id="rvConfirm" role="alertdialog" aria-labelledby="rvConfirmT" hidden>
+      <p id="rvConfirmT"><b>確定要刪除這筆紀錄嗎？</b><br><span id="rvConfirmNote">刪除後無法復原；照片會移到雲端硬碟的垃圾桶，30 天內可以救回。</span></p>
+      <div class="rv-actions"><button type="button" class="btn-ghost" id="rvDelNo">取消</button><button type="button" class="btn-primary sm danger" id="rvDelYes">確定刪除</button></div>
     </div>
     <div class="rep-body" id="rvBody"></div>
   </section>
@@ -625,6 +667,13 @@ async function isAllowed(email){
   return ALLOWED_SHA256.includes([...new Uint8Array(d)].map(b=>b.toString(16).padStart(2,'0')).join(''))}catch(e){return false}
 }
 const VERSIONS = [
+  {v:'V9', date:'2026-10-13', items:[
+    '已儲存的紀錄可以編輯、刪除（只限自己的紀錄）',
+    '型號選單合併等級：選廠牌後直接選型號，型號依學生級／進階級／專業級分組',
+    '拿掉樂器配置選單：選了型號就畫該型號的樣式；沒選型號時畫最多配置',
+    '新增維修金額；統計頁可切換件數／金額，並新增維修金額累計圖',
+    '清單、紀錄頁與月報都會顯示金額與合計'
+  ]},
   {v:'V6', date:'2026-10-09', items:[
     '新增「此次維護項目」：清洗保養擦拭、調整墊片、維修零件、更換零件（可複選），放在維修部位之前',
     '維護項目會顯示在清單、紀錄頁與所有月報中',
@@ -1378,8 +1427,8 @@ selInst.addEventListener('change',()=>{
 function setInstrument(entry){
  if(Object.keys(state.repairs).length&&entry!==state.entry)toast('已切換樂器，先前標記的部位已清除');
  state.entry=entry;state.family=entry?selFam.value:null;state.repairs={};state.model=null;
- state.config=entry?configFor(entry.id,{}):{};
- renderModelSelects();renderConfig();buildInst();
+ state.config=entry?maxConfig(entry.id):{};
+ renderModelSelects();buildInst();
 }
 // Rebuild the drawing from the current configuration; keep marks whose parts still exist on the new drawing.
 function buildInst(){
@@ -1388,58 +1437,57 @@ function buildInst(){
  if(state.inst){const ids=new Set(state.inst.parts.map(p=>p.id));for(const k of Object.keys(state.repairs))if(!ids.has(k))delete state.repairs[k]}
  renderDiagram();
 }
-// Picking a model resets the configuration to that model's factory defaults.
+// 選了型號：畫出該型號的出廠配置。沒有型號或手動輸入：畫「最多配置」，每個可能的零件都能點選。
 function applyModelDefaults(){
- state.config=configFor(state.entry.id,state.model&&!state.model.manual?state.model.o:{});
- renderConfig();buildInst();
+ const id=state.entry.id;
+ state.config=state.model&&!state.model.manual?configFor(id,state.model.o):maxConfig(id);
+ buildInst();
 }
-function renderConfig(){
- const e=state.entry,ops=e?OPTS[e.id]||[]:[];
- $('#cfgBox').hidden=!ops.length;
- $('#cfgFields').innerHTML=ops.map(op=>`<div class="field"><label for="cfg-${op.k}">${esc(op.l)}</label><select id="cfg-${op.k}" data-k="${op.k}">${op.ch.map(([v,t])=>`<option value="${esc(v)}"${state.config[op.k]===v?' selected':''}>${esc(t)}</option>`).join('')}</select></div>`).join('');
- $('#cfgHint').textContent=state.model&&!state.model.manual?`已帶入 ${state.model.name} 的出廠配置；若樂器有改裝（例如自行更換尾管），請直接修改。`:'請依實際樂器選擇；選了型號會自動帶入出廠配置。';
+// Greedy: for each option pick the value whose drawing has the most clickable parts.
+function maxConfig(id){
+ const e=ENTRY_BY_ID[id],c=configFor(id,{});
+ for(const op of OPTS[id]||[]){
+  let best=c[op.k],bn=-1;
+  for(const [v] of op.ch){const inst=e.make({...c,[op.k]:v}),n=inst.parts.length+(inst.holes||[]).length/100;if(n>bn){bn=n;best=v}}
+  c[op.k]=best;
+ }
+ return c;
 }
-$('#cfgFields').addEventListener('change',e=>{const s=e.target.closest('select[data-k]');if(!s)return;state.config[s.dataset.k]=s.value;buildInst()});
 function configLabels(){
  const ops=state.entry?OPTS[state.entry.id]||[]:[];
  return ops.map(op=>`${op.l}：${(op.ch.find(([v])=>v===state.config[op.k])||[,''])[1]}`);
 }
 
-/* Model cascade: brand → grade → model, with manual entry fallback */
-const selBrand=$('#selBrand'),selGrade=$('#selGrade'),selModel=$('#selModel'),manualBox=$('#manualBox'),manualModel=$('#manualModel');
+/* Model cascade: brand → model (grouped by grade), with manual entry fallback */
+const selBrand=$('#selBrand'),selModel=$('#selModel'),manualBox=$('#manualBox'),manualModel=$('#manualModel');
 const MANUAL='__manual__';
 function renderModelSelects(){
  const e=state.entry;$('#modelBox').hidden=!e;manualBox.hidden=true;manualModel.value='';
  if(!e)return;
  const brands=Object.keys(MODELS[e.id]||{});
  selBrand.innerHTML=opts([...brands.map(b=>[b,b]),[MANUAL,'其他廠牌（手動輸入）']],'請選擇廠牌');
- selGrade.innerHTML=opts([],'先選廠牌');selGrade.disabled=true;
- selModel.innerHTML=opts([],'先選等級');selModel.disabled=true;
+ selModel.innerHTML=opts([],'先選廠牌');selModel.disabled=true;
 }
 selBrand.addEventListener('change',()=>{
  const b=selBrand.value,data=(MODELS[state.entry.id]||{})[b];
- selModel.innerHTML=opts([],'先選等級');selModel.disabled=true;
- if(b===MANUAL){selGrade.innerHTML=opts([],'—');selGrade.disabled=true;showManual();return}
- manualBox.hidden=true;
- const gs=data?Object.keys(GRADES).filter(g=>data[g]):[];
- selGrade.innerHTML=opts(gs.map(g=>[g,GRADES[g]]),gs.length?'請選擇等級':'先選廠牌');selGrade.disabled=!gs.length;
- state.model=null;renderConfig();
-});
-selGrade.addEventListener('change',()=>{
- const list=selGrade.value?MODELS[state.entry.id][selBrand.value][selGrade.value]:[];
- selModel.innerHTML=opts([...list.map(m=>[m,m.split('|')[0]]),[MANUAL,'找不到型號，手動輸入']],list.length?'請選擇型號':'先選等級');selModel.disabled=!list.length;
- manualBox.hidden=true;state.model=null;renderConfig();
+ manualBox.hidden=true;state.model=null;
+ if(b===MANUAL){selModel.innerHTML=opts([],'—');selModel.disabled=true;showManual();return}
+ if(!data){selModel.innerHTML=opts([],'先選廠牌');selModel.disabled=true;applyModelDefaults();return}
+ selModel.innerHTML='<option value="">請選擇型號</option>'+Object.keys(GRADES).filter(g=>data[g]).map(g=>`<optgroup label="${GRADES[g]}">${data[g].map(m=>`<option value="${esc(g+'::'+m)}">${esc(m.split('|')[0])}</option>`).join('')}</optgroup>`).join('')+`<option value="${MANUAL}">找不到型號，手動輸入</option>`;
+ selModel.disabled=false;applyModelDefaults();
 });
 selModel.addEventListener('change',()=>{
  if(selModel.value===MANUAL){showManual();return}
  manualBox.hidden=true;
- state.model=selModel.value?{...parseModel(selModel.value),brand:selBrand.value,grade:GRADES[selGrade.value]}:null;
- if(state.model)applyModelDefaults();else renderConfig();
+ if(!selModel.value){state.model=null;applyModelDefaults();return}
+ const [g,m]=selModel.value.split('::');
+ state.model={...parseModel(m),brand:selBrand.value,grade:GRADES[g]};
+ applyModelDefaults();
 });
 function showManual(){
  manualBox.hidden=false;
- state.model={name:'',o:{},manual:true,brand:selBrand.value===MANUAL?'':selBrand.value,grade:selGrade.value?GRADES[selGrade.value]:''};
- renderConfig();manualModel.focus();
+ state.model={name:'',o:{},manual:true,brand:selBrand.value===MANUAL?'':selBrand.value,grade:''};
+ applyModelDefaults();manualModel.focus();
 }
 manualModel.addEventListener('input',()=>{if(state.model&&state.model.manual)state.model.name=manualModel.value.trim()});
 
@@ -1589,7 +1637,7 @@ function closeOverlays(){$('#sheet').hidden=true;$('#verModal').hidden=true;$('#
 function renderPhotos(){
  $('#photos').innerHTML=state.photos.map((ph,i)=>`<div class="ph">
   <div class="ph-box${ph?' has':''}"><span class="ph-num">${i+1}</span>
-   ${ph?`<img src="${ph.url}" alt="照片 ${i+1}"><button type="button" class="ph-del" data-del="${i}">移除</button>`
+   ${ph?`${ph.url?`<img src="${ph.url}" alt="照片 ${i+1}">`:'<span>載入中…</span>'}<button type="button" class="ph-del" data-del="${i}">移除</button>`
        :`<span>＋ 拍照或選擇照片</span><input type="file" accept="image/*" id="photo-${i}" data-i="${i}" aria-label="上傳照片 ${i+1}">`}
   </div>
   <textarea id="cap-${i}" data-cap="${i}" placeholder="照片說明" ${ph?'':'disabled'}>${esc(ph?.caption||'')}</textarea></div>`).join('');
@@ -1597,17 +1645,31 @@ function renderPhotos(){
 }
 $('#photos').addEventListener('change',e=>{
  const inp=e.target;if(inp.type!=='file'||!inp.files[0])return;
- state.photos[+inp.dataset.i]={url:URL.createObjectURL(inp.files[0]),name:inp.files[0].name,caption:''};renderPhotos();
+ state.photos[+inp.dataset.i]={url:URL.createObjectURL(inp.files[0]),file:inp.files[0],name:inp.files[0].name,caption:''};renderPhotos();
 });
-$('#photos').addEventListener('click',e=>{const b=e.target.closest('[data-del]');if(!b)return;const i=+b.dataset.del;URL.revokeObjectURL(state.photos[i].url);state.photos[i]=null;renderPhotos()});
+$('#photos').addEventListener('click',e=>{const b=e.target.closest('[data-del]');if(!b)return;const i=+b.dataset.del;if(!state.photos[i].existing&&state.photos[i].url)URL.revokeObjectURL(state.photos[i].url);state.photos[i]=null;renderPhotos()});
 $('#photos').addEventListener('input',e=>{const t=e.target;if(t.dataset.cap!==undefined&&state.photos[+t.dataset.cap])state.photos[+t.dataset.cap].caption=t.value});
 
 /* ================= Save & records ================= */
 const sessionPhotos={};   // recId → object URLs（樣板：照片只保留到關閉頁面）
 const ENTRY_BY_ID={};for(const fam of Object.values(CATALOG))for(const [f,list] of Object.entries(fam))for(const e of list)ENTRY_BY_ID[e.id]={...e,family:f};
 function cfgLabels(id,cfg){return(OPTS[id]||[]).map(op=>`${op.l}：${(op.ch.find(([v])=>v===cfg[op.k])||[,''])[1]}`)}
-$('#recForm').addEventListener('submit',e=>{
- e.preventDefault();const msg=$('#formMsg');
+// 儲存位置（樣板：這個瀏覽器；正式版由 tools/save.js.txt 覆寫成 Google Drive）
+async function persistRecord(rec,photos,progress){
+ rec.photos=photos.map(p=>({caption:p.caption}));
+ sessionPhotos[rec.id]=photos.map(p=>p.url);
+ const all=store.get('mi-records',[]).filter(x=>x.id!==rec.id);all.unshift(rec);store.set('mi-records',all);
+}
+async function removeRecord(rec){store.set('mi-records',store.get('mi-records',[]).filter(x=>x.id!==rec.id))}
+async function photoSrc(r,k){return (sessionPhotos[r.id]||[])[k]||''}
+
+const fmtMoney=v=>'NT$ '+Math.round(+v||0).toLocaleString('zh-TW');
+const fmtAmt=r=>r.amount==null||r.amount===''?'未填':fmtMoney(r.amount);
+const fmtShort=v=>{v=Math.round(+v||0);if(v>=10000)return (v/10000).toFixed(v>=100000?0:1).replace(/\.0$/,'')+'萬';if(v>=1000)return (v/1000).toFixed(1).replace(/\.0$/,'')+'千';return String(v)};
+
+$('#recForm').addEventListener('submit',async e=>{
+ e.preventDefault();const msg=$('#formMsg'),btn=$('#saveBtn');
+ if(btn.disabled)return;
  if(!dateEl.value){msg.textContent='請選擇日期。';return}
  if(!state.inst){msg.textContent='請先選擇樂器（分類 → 類別 → 樂器）。';selInst.disabled?selCat.focus():selInst.focus();return}
  const reps=flatRepairs(),photos=state.photos.filter(Boolean);
@@ -1616,16 +1678,70 @@ $('#recForm').addEventListener('submit',e=>{
  if(cust&&!cust.name){msg.textContent=cust.type==='學校'?'請選擇學校，或用搜尋帶入。':`請輸入${cust.type==='團體'?'團體名稱':'客人姓名'}。`;return}
  const md=state.model?{brand:state.model.brand,grade:state.model.grade,name:state.model.name}:null;
  if(md&&state.model.manual&&!md.name){msg.textContent='請輸入型號，或改選清單中的型號。';manualModel.focus();return}
- msg.textContent='';
- const id=Date.now().toString(36);
- const rec={id,date:dateEl.value,instId:state.entry.id,family:state.family,inst:state.inst.name,assetNo:$('#assetNo').value.trim(),user:state.user,staff:state.name,
-  customer:cust,model:md,services:[...state.services],cfg:{...state.config},config:configLabels(),repairs:reps,photos:photos.map(p=>({caption:p.caption})),notes:$('#notes').value.trim()};
- sessionPhotos[id]=photos.map(p=>p.url);
- const all=store.get('mi-records',[]);all.unshift(rec);store.set('mi-records',all);
- state.photos=Array(6).fill(null);
- state.repairs={};state.services=[];renderServices();$('#assetNo').value='';$('#notes').value='';renderPhotos();renderDiagram();
- toast('已儲存。樣板只存在這個瀏覽器，照片保留到關閉頁面。');showView('list');
+ const amt=$('#amount').value.trim();
+ if(amt!==''&&!(+amt>=0)){msg.textContent='維修金額請輸入 0 以上的數字。';$('#amount').focus();return}
+ msg.textContent='';btn.disabled=true;
+ const ed=state.editing;
+ const id=ed?ed.id:Date.now().toString(36)+Math.random().toString(36).slice(2,6);
+ const rec={id,date:dateEl.value,instId:state.entry.id,family:state.family,inst:state.inst.name,assetNo:$('#assetNo').value.trim(),user:ed?ed.user:state.user,staff:ed&&ed.staff?ed.staff:state.name,
+  customer:cust,model:md,services:[...state.services],cfg:{...state.config},config:configLabels(),repairs:reps,photos:[],amount:amt===''?null:Math.round(+amt),notes:$('#notes').value.trim()};
+ try{
+  await persistRecord(rec,photos,t=>{btn.textContent=t});
+  resetForm();
+  toast(ed?'已儲存修改':'已儲存');showView('list');
+ }catch(err){
+  msg.textContent=`儲存失敗：${err.message||'網路連線中斷'}。資料還在畫面上，請確認網路後再按一次。`;
+ }finally{btn.disabled=false;btn.textContent=state.editing?'儲存修改':'儲存紀錄'}
 });
+function resetForm(){
+ state.editing=null;$('#editBar').hidden=true;
+ state.photos=Array(6).fill(null);state.repairs={};state.services=[];renderServices();
+ $('#assetNo').value='';$('#notes').value='';$('#amount').value='';$('#formMsg').textContent='';
+ dateEl.value=todayStr();syncWeek();
+ renderPhotos();renderDiagram();$('#saveBtn').textContent='儲存紀錄';
+}
+const fire=(el,v)=>{el.value=v;el.dispatchEvent(new Event('change'))};
+// Load a saved record back into the form.
+function startEdit(r){
+ resetForm();
+ state.editing=r;
+ dateEl.value=r.date;syncWeek();
+ const c=r.customer;
+ fire(custType,c?{'團體':'group','學校':'school','個人':'person'}[c.type]||'':'');
+ if(c&&c.type==='團體')$('#groupName').value=c.name||'';
+ if(c&&c.type==='個人')$('#personName').value=c.name||'';
+ if(c&&c.type==='學校'){
+  fire(schLevel,c.level||'');
+  const ci=SCHOOLS.counties.indexOf(c.county);
+  if(ci>=0){fire(schCounty,String(ci));fire(schDist,c.dist||'');schName.value=c.name||''}
+ }
+ const e=ENTRY_BY_ID[r.instId];
+ fire(selCat,'管樂');
+ if(e){fire(selFam,e.family);fire(selInst,e.id)}
+ if(e&&r.model){
+  const data=MODELS[e.id]||{};
+  if(r.model.brand&&data[r.model.brand]){
+   fire(selBrand,r.model.brand);
+   const opt=[...selModel.options].find(o=>o.value&&o.value!==MANUAL&&parseModel(o.value.split('::')[1]).name===r.model.name);
+   if(opt)fire(selModel,opt.value);else{selModel.value=MANUAL;showManual();manualModel.value=r.model.name||'';state.model.name=r.model.name||''}
+  }else{
+   fire(selBrand,MANUAL);manualModel.value=r.model.name||'';state.model.name=r.model.name||'';state.model.brand=r.model.brand||'';
+  }
+ }
+ if(e&&r.cfg){state.config={...r.cfg};buildInst()}
+ state.services=[...(r.services||[])];renderServices();
+ state.repairs={};
+ for(const x of r.repairs||[]){if(!x.partId)continue;(state.repairs[x.partId]=state.repairs[x.partId]||{})[x.item]={r:[...(x.r||[])],m:[...(x.m||[])],note:x.note||''}}
+ renderDiagram();
+ $('#assetNo').value=r.assetNo||'';$('#notes').value=r.notes||'';$('#amount').value=r.amount??'';
+ (r.photos||[]).slice(0,6).forEach((p,k)=>{state.photos[k]={url:'',fileId:p.fileId,caption:p.caption||'',existing:true}});
+ renderPhotos();
+ (r.photos||[]).slice(0,6).forEach((p,k)=>photoSrc(r,k).then(u=>{if(state.editing===r&&state.photos[k]&&state.photos[k].existing){state.photos[k].url=u;renderPhotos()}}).catch(()=>{}));
+ $('#editTitle').textContent=`正在編輯：${r.date}（${weekdayOf(r.date)}） ${r.inst}`;$('#editBar').hidden=false;$('#saveBtn').textContent='儲存修改';
+ $('#recView').hidden=true;document.body.style.overflow='';
+ showView('new');
+}
+$('#editCancel').addEventListener('click',()=>{resetForm();toast('已取消編輯')});
 
 /* ---------- 範例資料：固定亂數種子，每次產生相同的 2025–2026 紀錄 ---------- */
 function rng(seed){return()=>{seed|=0;seed=seed+0x6D2B79F5|0;let t=Math.imul(seed^seed>>>15,1|seed);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
@@ -1659,10 +1775,12 @@ function sampleRecords(){
    if(repairs.some(x=>x.item==='墊片'&&!x.m.some(t=>t.includes('更換'))))services.push('調整墊片');
    if(ms.some(t=>!t.includes('更換')))services.push('維修零件');
    if(ms.some(t=>t.includes('更換')))services.push('更換零件');
+   let amount=services.includes('清洗保養擦拭')?600+Math.round(R0()*6)*100:0;
+   for(const x of repairs)amount+=x.m.some(t=>t.includes('更換'))?300+Math.round(R0()*12)*100:200+Math.round(R0()*6)*100;
    const np=Math.floor(R0()*7);
    out.push({id:'s'+(n++),sample:true,date:`${y}-${String(mo+1).padStart(2,'0')}-${String(day).padStart(2,'0')}`,instId:id,family:entry.family,inst:entry.name,
     assetNo:`${prefix[id]}-${String(1+Math.floor(R0()*99)).padStart(3,'0')}`,staff:'',customer,model:{brand,grade:GRADES[grade],name:pm.name},cfg,config:cfgLabels(id,cfg),
-    services,repairs,photos:Array.from({length:np},(_,k)=>({caption:caps[k]})),notes:R0()<.2?'建議半年後回廠保養。':''});
+    services,repairs,amount,photos:Array.from({length:np},(_,k)=>({caption:caps[k]})),notes:R0()<.2?'建議半年後回廠保養。':''});
   }
  }
  return SAMPLES=out;
@@ -1677,7 +1795,10 @@ function allRecords(){
 const FAMS=[['木管','ww'],['銅管','br'],['打擊','pc']];
 const famKey=f=>(FAMS.find(x=>x[0]===f)||[,'ww'])[1];
 const ORDER=Object.keys(ENTRY_BY_ID);
-const stat={year:null,month:null,inst:null,group:'inst'};
+const stat={year:null,month:null,inst:null,group:'inst',metric:'count'};
+const val=r=>stat.metric==='amount'?(+r.amount||0):1;
+const fmtVal=v=>stat.metric==='amount'?fmtMoney(v):`${v} 件`;
+const fmtTiny=v=>stat.metric==='amount'?fmtShort(v):String(v);
 const tip=$('#tip');
 function showTip(e,html){tip.innerHTML=html;tip.hidden=false;const x=Math.min(e.clientX+14,innerWidth-tip.offsetWidth-8),y=Math.min(e.clientY+14,innerHeight-tip.offsetHeight-8);tip.style.left=x+'px';tip.style.top=y+'px'}
 const hideTip=()=>tip.hidden=true;
@@ -1690,7 +1811,7 @@ function renderRecords(){
  $('#statYear').innerHTML=years.map(y=>`<option value="${y}"${y===stat.year?' selected':''}>${y} 年</option>`).join('');
  $('#statTitle').textContent=`${stat.year} 年維修統計`;
  const yr=recs.filter(r=>+r.date.slice(0,4)===stat.year);
- renderKpis(yr);renderRose(yr);renderMatrix(yr);renderDrill(yr,null);renderList(yr);
+ renderKpis(yr);renderRose(yr);renderMatrix(yr);renderCum(yr);renderDrill(yr,null);renderList(yr);
 }
 function renderKpis(yr){
  const byM=Array(12).fill(0);yr.forEach(r=>byM[+r.date.slice(5,7)-1]++);
@@ -1700,6 +1821,7 @@ function renderKpis(yr){
  const parts=yr.reduce((s,r)=>s+r.repairs.length,0);
  $('#kpis').innerHTML=`
   <div class="kpi"><span>全年維修</span><b>${yr.length}</b><small>件樂器</small></div>
+  <div class="kpi"><span>全年維修金額</span><b>${fmtShort(yr.reduce((s,r)=>s+(+r.amount||0),0))}</b><small>${fmtMoney(yr.reduce((s,r)=>s+(+r.amount||0),0))}</small></div>
   <div class="kpi"><span>維修部位</span><b>${parts}</b><small>處</small></div>
   <div class="kpi"><span>最忙的月份</span><b>${yr.length?peak+1+' 月':'—'}</b><small>${yr.length?byM[peak]+' 件':'尚無資料'}</small></div>
   <div class="kpi"><span>最常維修</span><b style="font-family:var(--f-body);font-size:20px">${top?esc(top[0]):'—'}</b><small>${top?top[1]+' 件':''}</small></div>`;
@@ -1711,7 +1833,7 @@ function sector(cx,cy,a0,a1,r0,r1){
 function renderRose(yr){
  const cx=170,cy=170,r0=40,R=136,svg=$('#rose');
  const m=Array.from({length:12},()=>({ww:0,br:0,pc:0}));
- yr.forEach(r=>m[+r.date.slice(5,7)-1][famKey(r.family)]++);
+ yr.forEach(r=>m[+r.date.slice(5,7)-1][famKey(r.family)]+=val(r));
  const tot=m.map(o=>o.ww+o.br+o.pc),max=Math.max(1,...tot);
  const step=Math.PI*2/12,gap=.035;
  let h=[0.25,0.5,0.75,1].map(f=>`<circle class="ring" cx="${cx}" cy="${cy}" r="${(r0+(R-r0)*f).toFixed(1)}"/>`).join('');
@@ -1721,21 +1843,21 @@ function renderRose(yr){
    segs+=`<path class="petal f-${k}" style="animation-delay:${i*45}ms" d="${sector(cx,cy,a0,a1,s0,s1)}"/>`}
   const am=(i+.5)*step,lx=cx+(R+18)*Math.sin(am),ly=cy-(R+18)*Math.cos(am);
   const dim=stat.month!==null&&stat.month!==i;
-  h+=`<g class="petal-g${dim?' dim':''}" data-m="${i}" tabindex="0" role="button" aria-label="${i+1} 月 ${tot[i]} 件">${segs||`<path d="${sector(cx,cy,a0,a1,r0,r0+2)}" fill="var(--line)"/>`}<path d="${sector(cx,cy,a0,a1,r0,R+8)}" fill="transparent"/></g><text class="axis-t${stat.month===i?' on':''}" x="${lx.toFixed(1)}" y="${ly.toFixed(1)}">${i+1}月</text>`;
+  h+=`<g class="petal-g${dim?' dim':''}" data-m="${i}" tabindex="0" role="button" aria-label="${i+1} 月 ${fmtVal(tot[i])}">${segs||`<path d="${sector(cx,cy,a0,a1,r0,r0+2)}" fill="var(--line)"/>`}<path d="${sector(cx,cy,a0,a1,r0,R+8)}" fill="transparent"/></g><text class="axis-t${stat.month===i?' on':''}" x="${lx.toFixed(1)}" y="${ly.toFixed(1)}">${i+1}月</text>`;
  });
- const centerN=stat.month===null?yr.length:tot[stat.month];
- h+=`<text class="center-n" x="${cx}" y="${cy-4}">${centerN}</text><text class="center-l" x="${cx}" y="${cy+18}">${stat.month===null?'全年件數':(stat.month+1)+' 月件數'}</text>`;
+ const centerN=stat.month===null?tot.reduce((a,b)=>a+b,0):tot[stat.month],unit=stat.metric==='amount'?'金額':'件數';
+ h+=`<text class="center-n" x="${cx}" y="${cy-4}"${stat.metric==='amount'?' style="font-size:20px"':''}>${fmtTiny(centerN)}</text><text class="center-l" x="${cx}" y="${cy+18}">${stat.month===null?'全年'+unit:(stat.month+1)+' 月'+unit}</text>`;
  svg.innerHTML=h;svg._m=m;
 }
-$('#rose').addEventListener('pointermove',e=>{const g=e.target.closest('[data-m]');if(!g)return hideTip();const i=+g.dataset.m,o=$('#rose')._m[i];showTip(e,`${i+1} 月 · 共 <b>${o.ww+o.br+o.pc}</b> 件<br>木管 ${o.ww}　銅管 ${o.br}　打擊 ${o.pc}`)});
+$('#rose').addEventListener('pointermove',e=>{const g=e.target.closest('[data-m]');if(!g)return hideTip();const i=+g.dataset.m,o=$('#rose')._m[i];showTip(e,`${i+1} 月 · 共 <b>${fmtVal(o.ww+o.br+o.pc)}</b><br>木管 ${fmtTiny(o.ww)}　銅管 ${fmtTiny(o.br)}　打擊 ${fmtTiny(o.pc)}`)});
 $('#rose').addEventListener('pointerleave',hideTip);
-function pickMonth(i){stat.month=stat.month===i?null:i;const yr=allRecords().filter(r=>+r.date.slice(0,4)===stat.year);renderRose(yr);renderMatrix(yr);if(stat.inst)renderDrill(yr,stat.inst,true);renderList(yr)}
+function pickMonth(i){stat.month=stat.month===i?null:i;const yr=allRecords().filter(r=>+r.date.slice(0,4)===stat.year);renderRose(yr);renderMatrix(yr);renderCum(yr,true);if(stat.inst)renderDrill(yr,stat.inst,true);renderList(yr)}
 $('#rose').addEventListener('click',e=>{const g=e.target.closest('[data-m]');if(g)pickMonth(+g.dataset.m)});
 $('#rose').addEventListener('keydown',e=>{const g=e.target.closest('[data-m]');if(g&&(e.key==='Enter'||e.key===' ')){e.preventDefault();pickMonth(+g.dataset.m)}});
 
 function renderMatrix(yr){
  const svg=$('#matrix'),cnt={};
- yr.forEach(r=>{const k=r.instId||r.inst;(cnt[k]=cnt[k]||{name:r.inst,fam:famKey(r.family),m:Array(12).fill(0)}).m[+r.date.slice(5,7)-1]++});
+ yr.forEach(r=>{const k=r.instId||r.inst;(cnt[k]=cnt[k]||{name:r.inst,fam:famKey(r.family),m:Array(12).fill(0)}).m[+r.date.slice(5,7)-1]+=val(r)});
  const rows=Object.entries(cnt).sort((a,b)=>ORDER.indexOf(a[0])-ORDER.indexOf(b[0]));
  const L=118,cw=30,rh=30,top=24,W=L+cw*12+44,H=top+Math.max(1,rows.length)*rh+6;
  const max=Math.max(1,...rows.flatMap(([,o])=>o.m));
@@ -1746,16 +1868,16 @@ function renderMatrix(yr){
  if(!rows.length)h+=`<text class="axis-t" x="${W/2}" y="${top+14}">這一年還沒有紀錄</text>`;
  rows.forEach(([id,o],ri)=>{
   const y=top+ri*rh+rh/2,total=o.m.reduce((a,b)=>a+b,0);
-  h+=`<g class="mrow${stat.inst===id?' on':''}" data-i="${esc(id)}" tabindex="0" role="button" aria-label="${esc(o.name)} 全年 ${total} 件，查看廠牌型號"><rect class="mrow-bg" x="0" y="${y-rh/2}" width="${W}" height="${rh}" rx="6"/><text class="mrow-l" x="6" y="${y}">${esc(o.name)}</text></g>`;
+  h+=`<g class="mrow${stat.inst===id?' on':''}" data-i="${esc(id)}" tabindex="0" role="button" aria-label="${esc(o.name)} 全年 ${fmtVal(total)}，查看廠牌型號"><rect class="mrow-bg" x="0" y="${y-rh/2}" width="${W}" height="${rh}" rx="6"/><text class="mrow-l" x="6" y="${y}">${esc(o.name)}</text></g>`;
   h+=`<line class="grid-l" x1="${L}" x2="${L+cw*12}" y1="${y}" y2="${y}"/>`;
   o.m.forEach((v,mi)=>{if(!v)return;const r=Math.max(4,Math.sqrt(v/max)*13);
-   h+=`<g data-cell="${esc(id)}|${mi}"><circle class="dot f-${o.fam}" style="animation-delay:${mi*35+ri*20}ms" cx="${L+mi*cw+cw/2}" cy="${y}" r="${r.toFixed(1)}"/>${r>=9?`<text class="dot-n" x="${L+mi*cw+cw/2}" y="${y}">${v}</text>`:''}<rect x="${L+mi*cw}" y="${y-rh/2}" width="${cw}" height="${rh}" fill="transparent"/></g>`});
-  h+=`<text class="tot" x="${L+cw*12+12}" y="${y}">${total}</text>`;
+   h+=`<g data-cell="${esc(id)}|${mi}"><circle class="dot f-${o.fam}" style="animation-delay:${mi*35+ri*20}ms" cx="${L+mi*cw+cw/2}" cy="${y}" r="${r.toFixed(1)}"/>${r>=9?`<text class="dot-n" x="${L+mi*cw+cw/2}" y="${y}"${stat.metric==='amount'?' style="font-size:8.5px"':''}>${fmtTiny(v)}</text>`:''}<rect x="${L+mi*cw}" y="${y-rh/2}" width="${cw}" height="${rh}" fill="transparent"/></g>`});
+  h+=`<text class="tot" x="${L+cw*12+12}" y="${y}">${fmtTiny(total)}</text>`;
  });
  svg.setAttribute('viewBox',`0 0 ${W} ${H}`);svg.setAttribute('width',W);svg.setAttribute('height',H);
  svg.innerHTML=h;svg._rows=Object.fromEntries(rows);
 }
-$('#matrix').addEventListener('pointermove',e=>{const c=e.target.closest('[data-cell]');if(!c)return hideTip();const [id,mi]=c.dataset.cell.split('|');const o=$('#matrix')._rows[id];showTip(e,`${esc(o.name)} · ${+mi+1} 月<br><b>${o.m[mi]}</b> 件`)});
+$('#matrix').addEventListener('pointermove',e=>{const c=e.target.closest('[data-cell]');if(!c)return hideTip();const [id,mi]=c.dataset.cell.split('|');const o=$('#matrix')._rows[id];showTip(e,`${esc(o.name)} · ${+mi+1} 月<br><b>${fmtVal(o.m[mi])}</b>`)});
 $('#matrix').addEventListener('pointerleave',hideTip);
 function openDrill(id,e){
  stat.inst=stat.inst===id?null:id;
@@ -1776,10 +1898,10 @@ function renderDrill(yr,id,keepOpen){
  const name=(ENTRY_BY_ID[id]||{}).name||id,fam=famKey((ENTRY_BY_ID[id]||{}).family||recs[0]?.family);
  $('#drillEyebrow').textContent=`${stat.year} 年${stat.month!==null?` ${stat.month+1} 月`:''} · ${recs.length} 件`;
  $('#drillTitle').textContent=`${name}：廠牌與型號`;
- const by={};recs.forEach(r=>{const b=r.model?.brand||'未填廠牌',m=r.model?.name||'未填型號';(by[b]=by[b]||{n:0,m:{}}).n++;by[b].m[m]=(by[b].m[m]||0)+1});
+ const by={},amt={};recs.forEach(r=>{const b=r.model?.brand||'未填廠牌',m=r.model?.name||'未填型號';(by[b]=by[b]||{n:0,m:{}}).n++;by[b].m[m]=(by[b].m[m]||0)+1;amt[b+'|'+m]=(amt[b+'|'+m]||0)+(+r.amount||0)});
  const brands=Object.entries(by).sort((a,b)=>b[1].n-a[1].n);
  $('#tree').innerHTML=brands.length?brands.map(([b,o],bi)=>`<div class="tb" style="flex:${o.n} 1 0;animation-delay:${bi*70}ms">${Object.entries(o.m).sort((a,b)=>b[1]-a[1]).map(([m,v],mi)=>`<div class="tm" style="flex:${v} 1 0;--fc:var(--fam-${fam});--mix:${Math.max(18,70-bi*12-mi*8)}%" title="${esc(b)} ${esc(m)}：${v} 件">${mi===0?`<span class="brand">${esc(b)}</span>`:''}<b>${esc(m)}</b><span>${v} 件</span></div>`).join('')}</div>`).join(''):'<p class="hint" style="padding:16px">這段期間沒有這項樂器的紀錄。</p>';
- $('#drillTable').innerHTML=brands.length?`<thead><tr><th>廠牌</th><th>型號</th><th style="text-align:right">件數</th></tr></thead><tbody>${brands.flatMap(([b,o])=>Object.entries(o.m).sort((a,b)=>b[1]-a[1]).map(([m,v])=>`<tr><td>${esc(b)}</td><td>${esc(m)}</td><td class="n">${v}</td></tr>`)).join('')}</tbody>`:'';
+ $('#drillTable').innerHTML=brands.length?`<thead><tr><th>廠牌</th><th>型號</th><th style="text-align:right">件數</th><th style="text-align:right">金額</th></tr></thead><tbody>${brands.flatMap(([b,o])=>Object.entries(o.m).sort((a,b)=>b[1]-a[1]).map(([m,v])=>`<tr><td>${esc(b)}</td><td>${esc(m)}</td><td class="n">${v}</td><td class="n">${fmtMoney(amt[b+'|'+m]||0)}</td></tr>`)).join('')}</tbody>`:'';
  d.hidden=false;
  if(!keepOpen){d.classList.add('closed');requestAnimationFrame(()=>requestAnimationFrame(()=>d.classList.remove('closed')))}else d.classList.remove('closed');
 }
@@ -1794,15 +1916,54 @@ function renderList(yr){
   const list=groups[k],first=list[0];
   const title=stat.group==='inst'?first.inst:`${+k.slice(5)} 月`;
   const dot=stat.group==='inst'?`<i class="f-${famKey(first.family)}"></i>`:'';
-  return `<details class="grp"${gi<2?' open':''}><summary>${dot}<b>${esc(title)}</b><span class="cnt">${list.length} 件</span></summary><div class="rows">${list.map(r=>`<div class="row" data-id="${esc(r.id)}" tabindex="0" role="button" aria-label="查看 ${esc(r.date)} ${esc(r.inst)} 維修紀錄"><span class="d">${esc(r.date.slice(5).replace('-','/'))}（${weekdayOf(r.date)}）</span>
+  return `<details class="grp"${gi<2?' open':''}><summary>${dot}<b>${esc(title)}</b><span class="cnt">${list.length} 件 · ${fmtMoney(list.reduce((a,r)=>a+(+r.amount||0),0))}</span></summary><div class="rows">${list.map(r=>`<div class="row" data-id="${esc(r.id)}" tabindex="0" role="button" aria-label="查看 ${esc(r.date)} ${esc(r.inst)} 維修紀錄"><span class="d">${esc(r.date.slice(5).replace('-','/'))}（${weekdayOf(r.date)}）</span>
    <span class="t"><b>${esc(stat.group==='inst'?[r.model?.brand,r.model?.name].filter(Boolean).join(' ')||'未填型號':r.inst+' '+[r.model?.brand,r.model?.name].filter(Boolean).join(' '))}</b>${r.sample?'<span class="badge mini sample">範例</span>':''} · ${esc(r.customer?r.customer.name:'未填客戶')}${(r.services||[]).length?`<span class="svc-tags">${r.services.map(v=>`<span class="svc-tag">${esc(v)}</span>`).join('')}</span>`:''}</span>
-   <span class="s">${esc(r.repairs.map(x=>`${x.part}（${x.m.join('、')||x.item}）`).join('；')||'未標記部位')}${r.photos.length?` · 照片 ${r.photos.length} 張`:''}</span><span class="go">查看紀錄 →</span></div>`).join('')}</div></details>`;
+   <span class="s">${esc(r.repairs.map(x=>`${x.part}（${x.m.join('、')||x.item}）`).join('；')||'未標記部位')}${r.photos.length?` · 照片 ${r.photos.length} 張`:''}${r.amount!=null&&r.amount!==''?` · <span class="amt">${fmtMoney(r.amount)}</span>`:''}</span><span class="go">查看紀錄 →</span></div>`).join('')}</div></details>`;
  }).join(''):'<p class="empty">這段期間沒有紀錄。到「新增紀錄」建立第一筆吧。</p>';
 }
 $('#statYear').addEventListener('change',e=>{stat.year=+e.target.value;stat.month=null;stat.inst=null;renderRecords()});
 $('#showSample').addEventListener('change',()=>{stat.inst=null;renderRecords()});
 $('#monthChip').addEventListener('click',()=>pickMonth(stat.month));
-document.querySelectorAll('.seg button').forEach(b=>b.addEventListener('click',()=>{stat.group=b.dataset.g;document.querySelectorAll('.seg button').forEach(x=>x.setAttribute('aria-pressed',x===b));renderList(allRecords().filter(r=>+r.date.slice(0,4)===stat.year))}));
+document.querySelectorAll('.list-ctrl .seg button').forEach(b=>b.addEventListener('click',()=>{stat.group=b.dataset.g;document.querySelectorAll('.list-ctrl .seg button').forEach(x=>x.setAttribute('aria-pressed',x===b));renderList(allRecords().filter(r=>+r.date.slice(0,4)===stat.year))}));
+
+document.querySelectorAll('#metricSeg button').forEach(b=>b.addEventListener('click',()=>{
+ stat.metric=b.dataset.metric;document.querySelectorAll('#metricSeg button').forEach(x=>x.setAttribute('aria-pressed',x===b));
+ const amt=stat.metric==='amount';
+ $('#roseHint').textContent=amt?'花瓣長度＝金額，依類別堆疊。點花瓣篩選月份。':'花瓣長度＝件數，依類別堆疊。點花瓣篩選月份。';
+ $('#matrixHint').textContent=amt?'圓點大小＝金額。點樂器名稱看廠牌與型號。':'圓點大小＝件數。點樂器名稱看廠牌與型號。';
+ const yr=allRecords().filter(r=>+r.date.slice(0,4)===stat.year);renderRose(yr);renderMatrix(yr);
+}));
+function niceMax(v){if(v<=0)return 1000;const p=Math.pow(10,Math.floor(Math.log10(v))),f=v/p;return (f<=1?1:f<=2?2:f<=2.5?2.5:f<=5?5:10)*p}
+function renderCum(yr,keepAnim){
+ const svg=$('#cum'),W=680,H=250,L=58,Rr=70,T=18,B=30,iw=W-L-Rr,ih=H-T-B;
+ const mon=Array(12).fill(0);yr.forEach(r=>mon[+r.date.slice(5,7)-1]+=(+r.amount||0));
+ const now=new Date(),last=stat.year===now.getFullYear()?now.getMonth():11;
+ const cum=[];mon.reduce((a,v,i)=>(cum[i]=a+v),0);
+ const max=niceMax(cum[last]||0),x=i=>L+iw*(i+.5)/12,y=v=>T+ih*(1-v/max),bw=iw/12*.56;
+ let h='';
+ for(let k=0;k<=4;k++){const v=max*k/4;h+=`<line class="cum-grid" x1="${L}" x2="${L+iw}" y1="${y(v)}" y2="${y(v)}"/><text class="cum-y" x="${L-8}" y="${y(v)}">${fmtShort(v)}</text>`}
+ for(let i=0;i<12;i++){
+  if(i<=last&&mon[i]>0)h+=`<rect class="cum-bar${stat.month===i?' on':''}" style="animation-delay:${i*40}ms" x="${(x(i)-bw/2).toFixed(1)}" y="${y(mon[i]).toFixed(1)}" width="${bw.toFixed(1)}" height="${(T+ih-y(mon[i])).toFixed(1)}" rx="3"/>`;
+  h+=`<text class="cum-x${stat.month===i?' on':''}" x="${x(i)}" y="${H-10}">${i+1}月</text>`;
+ }
+ const pts=cum.slice(0,last+1).map((v,i)=>`${x(i).toFixed(1)},${y(v).toFixed(1)}`);
+ if(pts.length){
+  h+=`<path class="cum-area" d="M${x(0).toFixed(1)},${T+ih} L${pts.join(' L')} L${x(last).toFixed(1)},${T+ih} Z"/>`;
+  h+=`<path class="cum-line" pathLength="1" d="M${pts.join(' L')}"/>`;
+  h+=`<circle class="cum-dot" cx="${x(last)}" cy="${y(cum[last])}" r="5"/><text class="cum-end" x="${x(last)+9}" y="${y(cum[last])-8}">${fmtShort(cum[last])}</text>`;
+ }
+ if(!yr.some(r=>+r.amount>0))h+=`<text class="cum-x" x="${L+iw/2}" y="${T+ih/2}">這一年還沒有填寫維修金額</text>`;
+ h+=`<line class="cum-cross" id="cumCross" x1="0" x2="0" y1="${T}" y2="${T+ih}" visibility="hidden"/>`;
+ for(let i=0;i<=last;i++)h+=`<rect data-cm="${i}" x="${L+iw*i/12}" y="${T}" width="${iw/12}" height="${ih+B}" fill="transparent" style="cursor:pointer"/>`;
+ svg.innerHTML=h;svg._d={mon,cum,x};
+}
+$('#cum').addEventListener('pointermove',e=>{
+ const c=e.target.closest('[data-cm]'),cross=$('#cumCross');if(!c){hideTip();if(cross)cross.setAttribute('visibility','hidden');return}
+ const i=+c.dataset.cm,d=$('#cum')._d;cross.setAttribute('x1',d.x(i));cross.setAttribute('x2',d.x(i));cross.setAttribute('visibility','visible');
+ showTip(e,`${i+1} 月：<b>${fmtMoney(d.mon[i])}</b><br>累計：<b>${fmtMoney(d.cum[i])}</b>`);
+});
+$('#cum').addEventListener('pointerleave',()=>{hideTip();const c=$('#cumCross');if(c)c.setAttribute('visibility','hidden')});
+$('#cum').addEventListener('click',e=>{const c=e.target.closest('[data-cm]');if(c)pickMonth(+c.dataset.cm)});
 
 /* ---------- Record detail (same layout as the full report) ---------- */
 // Sample records have no real photos: draw a labelled placeholder so the viewer can be tried.
@@ -1816,6 +1977,7 @@ let rvRec=null;
 function openRecord(id){
  const r=allRecords().find(x=>x.id===id);if(!r)return;
  rvRec=r;
+ const own=!r.sample&&!r._ro;$('#rvEdit').hidden=!own;$('#rvDel').hidden=!own;$('#rvConfirm').hidden=true;
  $('#rvEyebrow').textContent=`${r.date}（${weekdayOf(r.date)}）${r.sample?' · 範例':''}`;
  $('#rvTitle').textContent=`${r.inst}${r.model&&r.model.name?' · '+r.model.name:''}`;
  $('#rvBody').innerHTML=recordPages(r,1,{cust:false,staff:false,asset:false},r.date.slice(0,7),1,2,'維修紀錄').replace('<h4>1. ','<h4>').replace('<h4>1. ','<h4>');
@@ -1825,6 +1987,15 @@ function openRecord(id){
 }
 function closeRecord(){$('#recView').hidden=true;document.body.style.overflow='';if(rvRec){const row=document.querySelector(`.row[data-id="${CSS.escape(rvRec.id)}"]`);if(row)row.focus()}}
 $('#rvClose').addEventListener('click',closeRecord);
+$('#rvEdit').addEventListener('click',()=>{if(rvRec)startEdit(rvRec)});
+$('#rvDel').addEventListener('click',()=>{$('#rvConfirm').hidden=false;$('#rvDelNo').focus()});
+$('#rvDelNo').addEventListener('click',()=>{$('#rvConfirm').hidden=true});
+$('#rvDelYes').addEventListener('click',async()=>{
+ const b=$('#rvDelYes');b.disabled=true;b.textContent='刪除中…';
+ try{await removeRecord(rvRec);$('#rvConfirm').hidden=true;closeRecord();renderRecords();toast('已刪除紀錄')}
+ catch(err){$('#rvConfirmNote').textContent=`刪除失敗：${err.message||'網路連線中斷'}，請再試一次。`}
+ finally{b.disabled=false;b.textContent='確定刪除'}
+});
 $('#records').addEventListener('click',e=>{const row=e.target.closest('.row[data-id]');if(row)openRecord(row.dataset.id)});
 $('#records').addEventListener('keydown',e=>{const row=e.target.closest('.row[data-id]');if(row&&(e.key==='Enter'||e.key===' ')){e.preventDefault();openRecord(row.dataset.id)}});
 
@@ -1888,12 +2059,12 @@ function textReport(type){
  recs.forEach(r=>fam[r.family]=(fam[r.family]||0)+1);
  const byI={};recs.forEach(r=>byI[r.inst]=(byI[r.inst]||0)+1);
  const L=[`樂器維護月報｜${m.slice(0,4)} 年 ${+m.slice(5)} 月`,'',
-  `統計：共 ${recs.length} 件（${FAMS.map(([f])=>`${f} ${fam[f]||0}`).join('、')}），維修部位 ${recs.reduce((s,r)=>s+r.repairs.length,0)} 處`,
+  `統計：共 ${recs.length} 件（${FAMS.map(([f])=>`${f} ${fam[f]||0}`).join('、')}），維修部位 ${recs.reduce((s,r)=>s+r.repairs.length,0)} 處，金額合計 ${fmtMoney(recs.reduce((s,r)=>s+(+r.amount||0),0))}`,
   `各樂器：${Object.entries(byI).sort((a,b)=>b[1]-a[1]).map(([k,v])=>`${k} ${v}`).join('、')||'無'}`,'─'.repeat(24)];
  recs.forEach((r,i)=>{
   const v=viewRec(r,mk),d=`${r.date}（${weekdayOf(r.date)}）`;
   if(type==='summary'){
-   L.push(`${i+1}. ${d}　${r.inst}｜${v.model}`,`   客戶：${v.cust}${v.place?`（${v.place}）`:''}｜維護項目：${(r.services||[]).join('、')||'—'}｜維修 ${r.repairs.length} 處：${r.repairs.map(x=>x.part).join('、')||'—'}`);
+   L.push(`${i+1}. ${d}　${r.inst}｜${v.model}`,`   客戶：${v.cust}${v.place?`（${v.place}）`:''}｜維護項目：${(r.services||[]).join('、')||'—'}｜維修 ${r.repairs.length} 處：${r.repairs.map(x=>x.part).join('、')||'—'}｜金額：${fmtAmt(r)}`);
   }else{
    L.push('',`【${i+1}】${d}`,`樂器：${r.inst}（${r.family}）`,`型號：${v.model}`);
    if(r.config&&r.config.length)L.push(`配置：${r.config.join('；')}`);
@@ -1902,6 +2073,7 @@ function textReport(type){
    if(!r.repairs.length)L.push('  － 未標記部位');
    const rep=replacedParts(r);if(rep.length)L.push(`更換零件：${rep.join('、')}`);
    L.push(`照片：${r.photos.length} 張${r.photos.some(p=>p.caption)?`（${r.photos.map(p=>p.caption).filter(Boolean).join('、')}）`:''}`);
+   L.push(`維修金額：${fmtAmt(r)}`);
    if(r.notes)L.push(`備註：${r.notes}`);
   }
  });
@@ -1935,6 +2107,7 @@ function recordPages(r,idx,mk,m,no,total,sub){
     <dt>客戶</dt><dd>${esc(v.cust)}</dd><dt>地區</dt><dd>${esc(v.place||'—')}</dd>
     <dt>型號</dt><dd>${esc(v.model)}</dd><dt>樂器編號</dt><dd>${esc(v.asset)}</dd>
     <dt>維修人員</dt><dd>${esc(v.staff)}</dd><dt>照片</dt><dd>${r.photos.length} 張</dd>
+    <dt>維修金額</dt><dd style="grid-column:span 3">${esc(fmtAmt(r))}</dd>
     <dt>維護項目</dt><dd style="grid-column:span 3">${esc((r.services||[]).join('、')||'未填')}</dd>
     ${r.config&&r.config.length?`<dt>配置</dt><dd style="grid-column:span 3">${esc(r.config.join('；'))}</dd>`:''}</dl>
    <div class="pg-dia">${dia.svg||dia}</div>
@@ -1952,7 +2125,7 @@ function photoReport(){
  const byI={};recs.forEach(r=>byI[r.inst]=(byI[r.inst]||0)+1);
  html+=page(`<h4>${m.slice(0,4)} 年 ${+m.slice(5)} 月 維修總覽</h4>
   <div class="cover-stats">${FAMS.map(([f])=>`<div><b>${fam[f]||0}</b>${f}</div>`).join('')}</div>
-  <p>本月共維修 <b>${recs.length}</b> 件樂器、<b>${recs.reduce((s,r)=>s+r.repairs.length,0)}</b> 處部位。以下每件樂器各兩頁：第一頁為基本資料與維修位置，第二頁為照片。</p>
+  <p>本月共維修 <b>${recs.length}</b> 件樂器、<b>${recs.reduce((s,r)=>s+r.repairs.length,0)}</b> 處部位，金額合計 <b>${fmtMoney(recs.reduce((s,r)=>s+(+r.amount||0),0))}</b>。以下每件樂器各兩頁：第一頁為基本資料與維修位置，第二頁為照片。</p>
   <ol class="cover-list">${recs.map(r=>`<li>${esc(r.date.slice(5).replace('-','/'))} ${esc(r.inst)}　${esc(viewRec(r,mk).cust)}</li>`).join('')}</ol>`,no++,total,m);
  recs.forEach((r,i)=>{html+=recordPages(r,i+1,mk,m,no,total);no+=2});
  return html;
