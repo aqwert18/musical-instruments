@@ -97,11 +97,13 @@ main{max-width:1180px;margin:0 auto;padding:16px 16px 110px}
 @media (max-width:420px){.mode{display:none}}
 
 /* ---------- Form ---------- */
-.form{display:grid;gap:14px;grid-template-areas:"basic" "inst" "svc" "diagram" "photos" "notes" "save"}
+.form{display:grid;gap:14px;grid-template-areas:"basic" "amount" "inst" "svc" "diagram" "photos" "notes" "save"}
 @media (min-width:900px){
-  .form{grid-template-columns:minmax(0,1fr) minmax(0,1fr);grid-template-areas:"basic inst" "svc svc" "diagram diagram" "photos photos" "notes notes" "save save";align-items:start}
+  .form{grid-template-columns:minmax(0,1fr) minmax(0,1fr);grid-template-areas:"basic inst" "amount inst" "svc svc" "diagram diagram" "photos photos" "notes notes" "save save";grid-template-rows:auto 1fr;align-items:start}
 }
 .s-svc{grid-area:svc}
+.s-amount{grid-area:amount;align-self:start}
+.h2-label{font-size:16px!important;font-weight:700!important;color:var(--fg)!important}
 .svc{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
 @media (min-width:700px){.svc{grid-template-columns:repeat(4,minmax(0,1fr))}}
 .svc-opt{display:flex;align-items:center;gap:10px;min-height:52px;padding:10px 12px;border:1.5px solid var(--line);border-radius:12px;background:var(--surface);text-align:left;font-weight:500}
@@ -541,6 +543,10 @@ a.mode:hover{color:var(--accent);border-color:var(--accent)}
           <div class="field"><label for="assetNo">樂器編號（選填）</label><input id="assetNo" type="text" placeholder="例：FL-012 或學校財產編號"></div>
         </section>
 
+        <section class="card s-amount">
+          <div class="field"><label for="amount" class="h2-label">維修金額</label><div class="money"><span>NT$</span><input id="amount" type="number" inputmode="numeric" min="0" step="1" placeholder="例：1500"></div><small class="hint">可不填；統計頁可依金額統計與累計。</small></div>
+        </section>
+
         <section class="card s-inst">
           <h2>選擇樂器</h2>
           <div class="field"><label for="selCat"><span class="step">1</span>分類</label><select id="selCat"></select></div>
@@ -575,7 +581,6 @@ a.mode:hover{color:var(--accent);border-color:var(--accent)}
         </section>
 
         <section class="card s-notes">
-          <div class="field"><label for="amount">維修金額</label><div class="money"><span>NT$</span><input id="amount" type="number" inputmode="numeric" min="0" step="1" placeholder="例：1500"></div></div>
           <div class="field"><label for="notes">備註</label><textarea id="notes" rows="3" placeholder="例：下次保養請一併檢查 G♯ 鍵彈簧"></textarea></div>
         </section>
 
@@ -711,6 +716,9 @@ async function isAllowed(email){
   return ALLOWED_SHA256.includes([...new Uint8Array(d)].map(b=>b.toString(16).padStart(2,'0')).join(''))}catch(e){return false}
 }
 const VERSIONS = [
+  {v:'V10', date:'2026-10-13', items:[
+    '維修金額移到基本資料下方（電腦版在選擇樂器左側）'
+  ]},
   {v:'V9', date:'2026-10-13', items:[
     '已儲存的紀錄可以編輯、刪除（只限自己的紀錄）',
     '型號選單合併等級：選廠牌後直接選型號，型號依學生級／進階級／專業級分組',
